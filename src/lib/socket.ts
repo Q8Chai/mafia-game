@@ -4,7 +4,7 @@ let socket: Socket | null = null
 
 export const getSocket = () => {
   if (!socket) {
-    socket = io('https://mafia-game-server.onrender.com')
+    socket = io('https://mafia-game-1.onrender.com')
 
   }
   return socket
