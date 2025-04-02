@@ -18,6 +18,16 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
   const [players, setPlayers] = useState<Player[]>([])
   const [role, setRole] = useState<string>('')
 
+  const [showSettings, setShowSettings] = useState(false)
+  const [settings, setSettings] = useState({
+    mafiaCount: 3,
+    mafiaKills: 2,
+    mafiaSilence: 2,
+    mafiaTargetSilence: 1,
+    policeQuestions: 2,
+    doctorSaves: 2,
+  })
+
   const isMafia = role === 'mafia' || role === 'mafia-leader'
 
   useEffect(() => {
@@ -44,7 +54,8 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
 
   const handleStartGame = () => {
     const socket = getSocket()
-    socket.emit('start-game', roomId)
+    socket.emit('start-game', roomId, settings)
+    setShowSettings(false)
   }
 
   return (
@@ -97,16 +108,71 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
 
       {isHost && (
         <button
-          onClick={handleStartGame}
+          onClick={() => setShowSettings(true)}
           disabled={players.length < 5}
           className={`mt-6 font-bold py-2 px-4 rounded transition ${
             players.length < 5
               ? 'bg-gray-600 cursor-not-allowed'
-              : 'bg-green-600 hover:bg-green-700'
+              : 'bg-blue-600 hover:bg-blue-700'
           }`}
         >
-          ابدأ اللعبة
+          إعدادات اللعبة
         </button>
+      )}
+
+      {showSettings && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white bg-opacity-10 backdrop-blur-md p-6 rounded-xl w-full max-w-md text-white space-y-4">
+
+            <h2 className="text-xl font-bold mb-4 text-center">إعدادات اللعبة</h2>
+
+            <label>عدد المافيا</label>
+            <select className="w-full p-2 rounded bg-gray-800" value={settings.mafiaCount}
+              onChange={(e) => setSettings({ ...settings, mafiaCount: parseInt(e.target.value) })}>
+              {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+
+            <label>عدد الاغتيالات</label>
+            <select className="w-full p-2 rounded bg-gray-800" value={settings.mafiaKills}
+              onChange={(e) => setSettings({ ...settings, mafiaKills: parseInt(e.target.value) })}>
+              {[1, 2, 3].map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+
+            <label>عدد مرات الاسكات الجماعي</label>
+            <select className="w-full p-2 rounded bg-gray-800" value={settings.mafiaSilence}
+              onChange={(e) => setSettings({ ...settings, mafiaSilence: parseInt(e.target.value) })}>
+              {[1, 2].map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+
+            <label>اسكات لاعب معين</label>
+            <select className="w-full p-2 rounded bg-gray-800" value={settings.mafiaTargetSilence}
+              onChange={(e) => setSettings({ ...settings, mafiaTargetSilence: parseInt(e.target.value) })}>
+              {[0, 1].map(n => <option key={n} value={n}>{n === 1 ? 'مسموح' : 'غير مسموح'}</option>)}
+            </select>
+
+            <label>عدد أسئلة الشرطي</label>
+            <select className="w-full p-2 rounded bg-gray-800" value={settings.policeQuestions}
+              onChange={(e) => setSettings({ ...settings, policeQuestions: parseInt(e.target.value) })}>
+              {[1, 2, 3].map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+
+            <label>عدد مرات الحماية للطبيب</label>
+            <select className="w-full p-2 rounded bg-gray-800" value={settings.doctorSaves}
+              onChange={(e) => setSettings({ ...settings, doctorSaves: parseInt(e.target.value) })}>
+              {[1, 2, 3].map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+
+            <div className="flex justify-between pt-4">
+              <button onClick={() => setShowSettings(false)} className="px-4 py-2 bg-gray-700 rounded">
+                إلغاء
+              </button>
+
+              <button onClick={handleStartGame} className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded">
+                ابدأ اللعبة
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {role && (
