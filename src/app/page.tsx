@@ -15,11 +15,15 @@ export default function Home() {
       setError('يرجى إدخال الاسم ورقم الغرفة')
       return
     }
-  
+
     const socket = getSocket()
-    if (!socket.connected) socket.connect()
-  
+
+    if (!socket.connected) {
+      socket.connect()
+    }
+
     socket.emit('check-room', roomId, (exists: boolean) => {
+      console.log('التحقق من الغرفة:', exists)
       if (exists) {
         router.push(`/room/${roomId}?name=${name}&host=false`)
       } else {
@@ -27,9 +31,6 @@ export default function Home() {
       }
     })
   }
-  
-  
-  
 
   const handleCreateRoom = () => {
     if (!name) {
@@ -49,7 +50,10 @@ export default function Home() {
         type="text"
         placeholder="ادخل اسمك المستعار"
         value={name}
-        onChange={(e) => setName(e.target.value)}
+        onChange={(e) => {
+          setName(e.target.value)
+          setError('')
+        }}
         className="mb-4 p-2 rounded bg-gray-800 border border-white text-white w-64 text-center"
       />
 
@@ -57,7 +61,10 @@ export default function Home() {
         type="text"
         placeholder="رقم الغرفة للانضمام"
         value={roomId}
-        onChange={(e) => setRoomId(e.target.value)}
+        onChange={(e) => {
+          setRoomId(e.target.value)
+          setError('')
+        }}
         className="mb-4 p-2 rounded bg-gray-800 border border-white text-white w-64 text-center"
       />
 
