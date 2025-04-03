@@ -180,8 +180,8 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
       {role && (
         <div className="mt-8 text-xl font-bold text-yellow-400 flex items-center gap-2">
           🎭 دورك هو:{' '}
-          {role === 'citizen'
-            ? 'شعب'
+          {role === 'doctor'
+            ? 'طبيب'
             : role === 'mafia'
             ? 'مافيا'
             : role === 'mafia-leader'
@@ -190,7 +190,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
             ? 'شرطي'
             : role === 'sniper'
             ? 'قناص'
-            : 'طبيب'}
+            : 'شعب'}
         </div>
       )}
     </main>
