@@ -17,10 +17,7 @@ export default function Home() {
     }
 
     const socket = getSocket()
-
-    if (!socket.connected) {
-      socket.connect()
-    }
+    if (!socket.connected) socket.connect()
 
     socket.emit('check-room', roomId, (exists: boolean) => {
       console.log('التحقق من الغرفة:', exists)
