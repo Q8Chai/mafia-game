@@ -1,7 +1,7 @@
 const { Server } = require("socket.io");
 const PORT = process.env.PORT || 3001;
-const io = new Server(PORT, {
 
+const io = new Server(PORT, {
   cors: {
     origin: "*",
   },
@@ -51,39 +51,48 @@ io.on("connection", (socket) => {
   });
 });
 
-console.log(`🚀 Socket.IO server running at http://localhost:${PORT}`);
+console.log(`🚀 Socket.IO server running on port ${PORT}`);
 
 
-// توزيع الأدوار حسب الإعدادات المرسلة
+// ✅ توزيع الأدوار حسب الإعدادات بدقة
 function assignRoles(players, settings) {
   const shuffled = [...players].sort(() => Math.random() - 0.5);
   const roles = [];
 
   const mafiaCount = settings.mafiaCount;
+  let index = 0;
 
-  // أدوار المافيا
-  if (mafiaCount >= 1 && shuffled.length >= 1)
-    roles.push({ name: shuffled[0], role: 'mafia-leader' });
-  if (mafiaCount >= 2 && shuffled.length >= 2)
-    roles.push({ name: shuffled[1], role: 'mafia-police' });
-  for (let i = 2; i < mafiaCount && i < shuffled.length; i++) {
-    roles.push({ name: shuffled[i], role: 'mafia' });
+  // زعيم المافيا
+  if (mafiaCount >= 1 && index < shuffled.length)
+    roles.push({ name: shuffled[index++], role: 'mafia-leader' });
+
+  // شرطي المافيا
+  if (mafiaCount >= 2 && index < shuffled.length)
+    roles.push({ name: shuffled[index++], role: 'mafia-police' });
+
+  // باقي المافيا العاديين
+  for (let i = 2; i < mafiaCount && index < shuffled.length; i++) {
+    roles.push({ name: shuffled[index++], role: 'mafia' });
   }
 
-  // أدوار خاصة: شرطي، قناص، طبيب (كل واحد فقط 1)
-  const specialRoles = ['police', 'sniper', 'doctor'];
-  let assigned = mafiaCount;
+  // شرطي
+  if (index < shuffled.length) {
+    roles.push({ name: shuffled[index++], role: 'police' });
+  }
 
-  for (let role of specialRoles) {
-    if (assigned < shuffled.length) {
-      roles.push({ name: shuffled[assigned], role });
-      assigned++;
-    }
+  // قناص
+  if (index < shuffled.length) {
+    roles.push({ name: shuffled[index++], role: 'sniper' });
+  }
+
+  // طبيب (واحد فقط)
+  if (index < shuffled.length) {
+    roles.push({ name: shuffled[index++], role: 'doctor' });
   }
 
   // الباقي شعب
-  for (let i = assigned; i < shuffled.length; i++) {
-    roles.push({ name: shuffled[i], role: 'citizen' });
+  for (; index < shuffled.length; index++) {
+    roles.push({ name: shuffled[index], role: 'citizen' });
   }
 
   return roles;
