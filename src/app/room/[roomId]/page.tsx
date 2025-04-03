@@ -190,7 +190,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
             ? 'شرطي'
             : role === 'sniper'
             ? 'قناص'
-            : 'زق'}
+            : 'طبيب'}
         </div>
       )}
     </main>
