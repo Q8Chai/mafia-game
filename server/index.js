@@ -31,7 +31,7 @@ io.on("connection", (socket) => {
     const players = rooms[roomId] || [];
     const playerNames = players.map((p) => p.name);
 
-    const roles = assignRoles(playerNames, settings.mafiaCount);
+    const roles = assignRoles(playerNames, settings);
 
     const playerData = players.map((player) => {
       const found = roles.find((r) => r.name === player.name);
@@ -52,9 +52,11 @@ io.on("connection", (socket) => {
 console.log("🚀 Socket.IO server running at http://localhost:3001");
 
 // توزيع الأدوار بناءً على عدد المافيا
-function assignRoles(players, mafiaCount) {
+function assignRoles(players, settings) {
   const shuffled = [...players].sort(() => Math.random() - 0.5);
   const roles = [];
+
+  const mafiaCount = settings.mafiaCount;
 
   if (mafiaCount >= 1) roles.push({ name: shuffled[0], role: 'mafia-leader' });
   if (mafiaCount >= 2) roles.push({ name: shuffled[1], role: 'mafia-police' });
