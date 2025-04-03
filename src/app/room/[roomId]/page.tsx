@@ -109,12 +109,7 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
       {isHost && (
         <button
           onClick={() => setShowSettings(true)}
-          disabled={players.length < 5}
-          className={`mt-6 font-bold py-2 px-4 rounded transition ${
-            players.length < 5
-              ? 'bg-gray-600 cursor-not-allowed'
-              : 'bg-blue-600 hover:bg-blue-700'
-          }`}
+          className="mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
         >
           إعدادات اللعبة
         </button>
@@ -167,7 +162,15 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                 إلغاء
               </button>
 
-              <button onClick={handleStartGame} className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded">
+              <button
+                onClick={handleStartGame}
+                disabled={players.length < 5}
+                className={`px-4 py-2 rounded font-bold transition ${
+                  players.length < 5
+                    ? 'bg-gray-600 cursor-not-allowed'
+                    : 'bg-green-600 hover:bg-green-700'
+                }`}
+              >
                 ابدأ اللعبة
               </button>
             </div>
