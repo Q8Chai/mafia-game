@@ -51,38 +51,37 @@ io.on("connection", (socket) => {
 
 console.log("🚀 Socket.IO server running at http://localhost:3001");
 
-// توزيع الأدوار بناءً على عدد المافيا
+// توزيع الأدوار حسب الإعدادات المرسلة
 function assignRoles(players, settings) {
-  const shuffled = [...players].sort(() => Math.random() - 0.5)
-  const roles = []
+  const shuffled = [...players].sort(() => Math.random() - 0.5);
+  const roles = [];
 
-  const mafiaCount = settings.mafiaCount
+  const mafiaCount = settings.mafiaCount;
 
-  // توزيع أدوار المافيا
+  // أدوار المافيا
   if (mafiaCount >= 1 && shuffled.length >= 1)
-    roles.push({ name: shuffled[0], role: 'mafia-leader' })
+    roles.push({ name: shuffled[0], role: 'mafia-leader' });
   if (mafiaCount >= 2 && shuffled.length >= 2)
-    roles.push({ name: shuffled[1], role: 'mafia-police' })
+    roles.push({ name: shuffled[1], role: 'mafia-police' });
   for (let i = 2; i < mafiaCount && i < shuffled.length; i++) {
-    roles.push({ name: shuffled[i], role: 'mafia' })
+    roles.push({ name: shuffled[i], role: 'mafia' });
   }
 
-  // أدوار خاصة: شرطي، قناص، طبيب (كل واحد شخص واحد فقط)
-  const specialRoles = ['police', 'sniper', 'doctor']
-  let assigned = mafiaCount
+  // أدوار خاصة: شرطي، قناص، طبيب (كل واحد فقط 1)
+  const specialRoles = ['police', 'sniper', 'doctor'];
+  let assigned = mafiaCount;
 
   for (let role of specialRoles) {
     if (assigned < shuffled.length) {
-      roles.push({ name: shuffled[assigned], role })
-      assigned++
+      roles.push({ name: shuffled[assigned], role });
+      assigned++;
     }
   }
 
   // الباقي شعب
   for (let i = assigned; i < shuffled.length; i++) {
-    roles.push({ name: shuffled[i], role: 'citizen' })
+    roles.push({ name: shuffled[i], role: 'citizen' });
   }
 
-  return roles
+  return roles;
 }
-
