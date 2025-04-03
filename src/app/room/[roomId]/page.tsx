@@ -117,7 +117,8 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
 
       {showSettings && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white bg-opacity-10 backdrop-blur-md p-6 rounded-xl w-full max-w-md text-white space-y-4">
+          <div className="bg-gray-800 bg-opacity-80 backdrop-blur-lg p-6 rounded-xl w-full max-w-md text-white space-y-4 shadow-2xl border border-white/20">
+
 
             <h2 className="text-xl font-bold mb-4 text-center">إعدادات اللعبة</h2>
 
