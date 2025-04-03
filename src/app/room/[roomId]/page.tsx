@@ -35,21 +35,11 @@ export default function RoomPage() {
   const [policeCheckResult, setPoliceCheckResult] = useState<{ name: string, isMafia: boolean } | null>(null)
   const [policeFinished, setPoliceFinished] = useState(false)
 
+  const [canStartRound, setCanStartRound] = useState(false)
+  const [countdown, setCountdown] = useState(30)
+
   const isMafia = role === 'mafia' || role === 'mafia-leader' || role === 'mafia-police'
   const isPolice = role === 'police'
-
-  const [canStartRound, setCanStartRound] = useState(false)
-
-  useEffect(() => {
-    if (isPreparationPhase) {
-      setCanStartRound(false)
-      const timer = setTimeout(() => {
-        setCanStartRound(true)
-      }, 30000) // 30 seconds
-
-      return () => clearTimeout(timer)
-    }
-  }, [isPreparationPhase])
 
   useEffect(() => {
     const socket = getSocket()
@@ -70,6 +60,27 @@ export default function RoomPage() {
     }
   }, [roomId, playerName])
 
+  useEffect(() => {
+    let countdownInterval: NodeJS.Timeout
+    if (isPreparationPhase) {
+      setCanStartRound(false)
+      setCountdown(30)
+
+      countdownInterval = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(countdownInterval)
+            setCanStartRound(true)
+            return 0
+          }
+          return prev - 1
+        })
+      }, 1000)
+    }
+
+    return () => clearInterval(countdownInterval)
+  }, [isPreparationPhase])
+
   const handleStartGame = () => {
     const socket = getSocket()
     socket.emit('start-game', roomId, settings)
@@ -85,13 +96,11 @@ export default function RoomPage() {
     if (!target) return
     const isTargetMafia = ['mafia', 'mafia-leader', 'mafia-police'].includes(target.role || '')
     setPoliceCheckResult({ name: target.name, isMafia: isTargetMafia })
-    setPoliceFinished(true)
   }
 
   const handlePostpone = () => {
     setSelectedPlayer(null)
     setPoliceCheckResult(null)
-    setPoliceFinished(true)
   }
 
   const startRound = () => {
@@ -100,11 +109,16 @@ export default function RoomPage() {
     setIsPreparationPhase(false)
   }
 
+  const endRound = () => {
+    setIsPreparationPhase(true)
+    setPoliceCheckResult(null)
+    setSelectedPlayer(null)
+  }
+
   return (
     <main className="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-white p-4">
       <h1 className="text-3xl font-bold mb-6">🎮 غرفة رقم: {roomId}</h1>
       <p className="mb-2">الاسم المستعار: {playerName}</p>
-      <p className="mb-4">بانتظار اللاعبين الآخرين...</p>
 
       <div className="mt-6 w-full max-w-md text-right">
         <h2 className="text-lg font-semibold mb-4">اللاعبين في الغرفة:</h2>
@@ -122,16 +136,30 @@ export default function RoomPage() {
         </div>
       </div>
 
+      {isPreparationPhase && (
+        <p className="mt-4 text-yellow-400 font-semibold">
+          تبدأ الجولة خلال: {countdown} ثانية
+        </p>
+      )}
+
       {isHost && (
-        <button
-          disabled={!canStartRound}
-          onClick={startRound}
-          className={`mt-4 px-4 py-2 rounded ${
-            canStartRound ? 'bg-green-600' : 'bg-gray-500'
-          }`}
-        >
-          ابدأ الجولة
-        </button>
+        <div className="flex gap-4 mt-4">
+          <button
+            disabled={!canStartRound}
+            onClick={startRound}
+            className={`px-4 py-2 rounded ${
+              canStartRound ? 'bg-green-600' : 'bg-gray-500'
+            }`}
+          >
+            ابدأ الجولة
+          </button>
+          <button
+            onClick={endRound}
+            className="px-4 py-2 rounded bg-red-600"
+          >
+            انتهاء الجولة
+          </button>
+        </div>
       )}
 
       {isHost && !showSettings && (
@@ -161,7 +189,7 @@ export default function RoomPage() {
         </div>
       )}
 
-      {isPolice && isPreparationPhase && !policeFinished && (
+      {isPolice && isPreparationPhase && (
         <div className="mt-6 text-center">
           <h3 className="mb-2">دور الشرطي: اختر لاعبًا للتحقق منه</h3>
           <div className="flex flex-wrap justify-center gap-2">
