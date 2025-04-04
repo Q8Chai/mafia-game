@@ -69,8 +69,9 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
         <div className="flex flex-col gap-3">
           {players.map((player, i) => {
             const showRole =
-              player.name === playerName ||
-              (isMafia && (player.role === 'mafia' || player.role === 'mafia-leader'))
+              player.name === playerName || // اللاعب الحالي
+              (isMafia && (player.role === 'mafia' || player.role === 'mafia-leader')) || // مرئي للمافيا
+              player.role === 'citizen' // عرض دور الشعب دائمًا
 
             const isVisibleToMafia =
               isMafia && (player.role === 'mafia' || player.role === 'mafia-leader')
