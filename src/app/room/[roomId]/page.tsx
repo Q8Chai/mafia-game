@@ -67,38 +67,37 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
       <div className="mt-6 w-full max-w-md text-right">
         <h2 className="text-lg font-semibold mb-4">اللاعبين في الغرفة:</h2>
         <div className="flex flex-col gap-3">
-          {players.map((player, i) => {
-            const showRole =
-              player.name === playerName || // اللاعب الحالي
-              (isMafia && (player.role === 'mafia' || player.role === 'mafia-leader')) || // مرئي للمافيا
-              player.role === 'citizen' // عرض دور الشعب دائمًا
+        {players.map((player, i) => {
+  const isVisibleToMafia =
+    isMafia && (player.role === 'mafia' || player.role === 'mafia-leader')
 
-            const isVisibleToMafia =
-              isMafia && (player.role === 'mafia' || player.role === 'mafia-leader')
+  return (
+    <div
+      key={i}
+      className="flex items-center justify-between bg-gray-800 border border-white px-4 py-2 rounded-lg"
+    >
+      <span
+        className={`${
+          isVisibleToMafia
+            ? 'text-red-500 font-bold'
+            : 'text-white'
+        }`}
+      >
+        {player.name}
+      </span>
 
-            const roleIcon = player.role === 'mafia' ? '🕵️‍♂️ مافيا'
-              : player.role === 'mafia-leader' ? '👑 زعيم'
-              : player.role === 'police' ? '👮‍♂️ شرطي'
-              : player.role === 'sniper' ? '🎯 قناص'
-              : player.role === 'doctor' ? '🩺 طبيب'
-              : player.role === 'citizen' ? '👤 شعب'
-              : ''
+      <span className="text-sm text-yellow-400">
+        {player.role === 'citizen' && '👤 شعب'}
+        {player.role === 'mafia' && '🕵️‍♂️ مافيا'}
+        {player.role === 'mafia-leader' && '👑 زعيم'}
+        {player.role === 'police' && '👮‍♂️ شرطي'}
+        {player.role === 'sniper' && '🎯 قناص'}
+        {player.role === 'doctor' && '🩺 طبيب'}
+      </span>
+    </div>
+  )
+})}
 
-            return (
-              <div
-                key={`${player.name}-${i}`}
-                className="flex items-center justify-between bg-gray-800 border border-white px-4 py-2 rounded-lg"
-              >
-                <span className={isVisibleToMafia ? 'text-red-500 font-bold' : 'text-white'}>
-                  {player.name}
-                </span>
-
-                {showRole && (
-                  <span className="text-sm text-yellow-400">{roleIcon}</span>
-                )}
-              </div>
-            )
-          })}
         </div>
       </div>
 
