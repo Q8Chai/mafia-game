@@ -75,30 +75,25 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
             const isVisibleToMafia =
               isMafia && (player.role === 'mafia' || player.role === 'mafia-leader')
 
+            const roleIcon = player.role === 'mafia' ? '🕵️‍♂️ مافيا'
+              : player.role === 'mafia-leader' ? '👑 زعيم'
+              : player.role === 'police' ? '👮‍♂️ شرطي'
+              : player.role === 'sniper' ? '🎯 قناص'
+              : player.role === 'doctor' ? '🩺 طبيب'
+              : player.role === 'citizen' ? '👤 شعب'
+              : ''
+
             return (
               <div
-                key={i}
+                key={`${player.name}-${i}`}
                 className="flex items-center justify-between bg-gray-800 border border-white px-4 py-2 rounded-lg"
               >
-                <span
-                  className={`${
-                    isVisibleToMafia
-                      ? 'text-red-500 font-bold'
-                      : 'text-white'
-                  }`}
-                >
+                <span className={isVisibleToMafia ? 'text-red-500 font-bold' : 'text-white'}>
                   {player.name}
                 </span>
 
                 {showRole && (
-                  <span className="text-sm text-yellow-400">
-                    {player.role === 'citizen' && '👤 شعب'}
-                    {player.role === 'mafia' && '🕵️‍♂️ مافيا'}
-                    {player.role === 'mafia-leader' && '👑 زعيم'}
-                    {player.role === 'police' && '👮‍♂️ شرطي'}
-                    {player.role === 'sniper' && '🎯 قناص'}
-                    {player.role === 'doctor' && '🩺 طبيب'}
-                  </span>
+                  <span className="text-sm text-yellow-400">{roleIcon}</span>
                 )}
               </div>
             )
