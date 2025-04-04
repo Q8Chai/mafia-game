@@ -73,7 +73,8 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
 
   return (
     <div
-      key={i}
+    key={`${player.name}-${i}`}
+
       className="flex items-center justify-between bg-gray-800 border border-white px-4 py-2 rounded-lg"
     >
       <span
