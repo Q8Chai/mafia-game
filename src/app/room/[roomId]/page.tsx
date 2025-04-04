@@ -19,6 +19,9 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
   const [role, setRole] = useState<string>('')
 
   const [showSettings, setShowSettings] = useState(false)
+  const [showKickMode, setShowKickMode] = useState(false)
+  const [selectedKick, setSelectedKick] = useState<string | null>(null)
+  const [canStartRound, setCanStartRound] = useState(false)
   const [settings, setSettings] = useState({
     mafiaCount: 3,
     mafiaKills: 2,
@@ -58,8 +61,54 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
     setShowSettings(false)
   }
 
+  const handleKick = () => {
+    if (!selectedKick) return
+    const socket = getSocket()
+    socket.emit('kick-player', { roomId, name: selectedKick })
+    setSelectedKick(null)
+    setShowKickMode(false)
+  }
+
   return (
     <main className="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-white p-4">
+      <div className="absolute top-4 right-4 flex flex-col items-end gap-4">
+        {isHost && (
+          <>
+            <button
+              onClick={() => setShowSettings(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            >
+              إعدادات اللعبة
+            </button>
+
+            <button
+              disabled={!canStartRound}
+              className={`font-bold py-2 px-4 rounded transition ${
+                canStartRound ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'
+              }`}
+            >
+              بدء الجولة
+            </button>
+
+            <button
+              onClick={() => setShowKickMode(!showKickMode)}
+              className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+            >
+              طرد لاعب
+            </button>
+
+            {showKickMode && selectedKick && (
+              <button
+                onClick={handleKick}
+                className="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-4 rounded mt-2"
+              >
+                تأكيد الطرد
+              </button>
+            )}
+          </>
+        )}
+      </div>
+
       <h1 className="text-3xl font-bold mb-6">🎮 غرفة رقم: {roomId}</h1>
       <p className="mb-2">الاسم المستعار: {playerName}</p>
       <p className="mb-4">بانتظار اللاعبين الآخرين...</p>
@@ -68,15 +117,14 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
         <h2 className="text-lg font-semibold mb-4">اللاعبين في الغرفة:</h2>
         <div className="flex flex-col gap-3">
           {players.map((player, i) => {
+            const showRole = player.name === playerName ||
+              (isMafia && (player.role === 'mafia' || player.role === 'mafia-leader' || player.role === 'mafia-police'))
+
             const isVisibleToMafia =
               isMafia && (player.role === 'mafia' || player.role === 'mafia-leader' || player.role === 'mafia-police')
 
-            const isOwn = player.name === playerName
-
-            const showIcon = isOwn || isVisibleToMafia
-
             let icon = ''
-            if (showIcon) {
+            if (player.name === playerName || isVisibleToMafia) {
               icon = player.role === 'citizen' ? '👤 شعب'
                 : player.role === 'mafia' ? '🕵️‍♂️ مافيا'
                 : player.role === 'mafia-leader' ? '👑 زعيم'
@@ -92,24 +140,25 @@ export default function RoomPage({ params }: { params: Promise<{ roomId: string 
                 key={`${player.name}-${i}`}
                 className="flex items-center justify-between bg-gray-800 border border-white px-4 py-2 rounded-lg"
               >
-                <span className={isVisibleToMafia ? 'text-red-500 font-bold' : 'text-white'}>
-                  {player.name}
-                </span>
+                <div className="flex items-center gap-2">
+                  {showKickMode && isHost && player.name !== playerName && (
+                    <input
+                      type="radio"
+                      name="kick"
+                      checked={selectedKick === player.name}
+                      onChange={() => setSelectedKick(player.name)}
+                    />
+                  )}
+                  <span className={isVisibleToMafia ? 'text-red-500 font-bold' : 'text-white'}>
+                    {player.name}
+                  </span>
+                </div>
                 <span className="text-sm text-yellow-400">{icon}</span>
               </div>
             )
           })}
         </div>
       </div>
-
-      {isHost && (
-        <button
-          onClick={() => setShowSettings(true)}
-          className="mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-        >
-          إعدادات اللعبة
-        </button>
-      )}
 
       {showSettings && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
