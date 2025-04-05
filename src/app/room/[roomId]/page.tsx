@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { getSocket } from '@/lib/socket'
 
@@ -9,17 +9,21 @@ type Player = {
   role?: string
 }
 
-export default function RoomPage({ params }: { params: { roomId: string } }) {
+export default function RoomPage({ params }: { params: Promise<{ roomId: string }> }) {
   const searchParams = useSearchParams()
   const playerName = searchParams.get('name') || ''
-  const roomId = params.roomId
-
+  const [roomId, setRoomId] = useState('')
   const [players, setPlayers] = useState<Player[]>([])
   const [role, setRole] = useState<string>('')
 
   const isMafia = role === 'mafia' || role === 'mafia-leader' || role === 'mafia-police'
 
   useEffect(() => {
+    params.then(p => setRoomId(p.roomId))
+  }, [params])
+
+  useEffect(() => {
+    if (!roomId) return
     const socket = getSocket()
 
     if (!socket.connected) socket.connect()
@@ -41,7 +45,7 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-white p-4">
-      <div className="flex justify-between w-full max-w-4xl">
+      <div className="flex justify-between w-full max-w-4xl mb-4">
         <button
           className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
         >
@@ -63,14 +67,17 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
         </div>
       </div>
 
-      <h1 className="text-3xl font-bold my-6">🎮 غرفة رقم: {roomId}</h1>
+      <h1 className="text-3xl font-bold my-4">🎮 غرفة رقم: {roomId}</h1>
       <p className="mb-2">الاسم المستعار: {playerName}</p>
 
       <div className="mt-6 w-full max-w-md text-right">
         <h2 className="text-lg font-semibold mb-4">اللاعبين في الغرفة:</h2>
         <div className="flex flex-col gap-3">
           {players.map((player, i) => {
-            const showIcon = player.name === playerName || isMafia && ['mafia', 'mafia-leader', 'mafia-police'].includes(player.role || '')
+            const showIcon =
+              player.name === playerName ||
+              (isMafia && ['mafia', 'mafia-leader', 'mafia-police'].includes(player.role || ''))
+
             const icon =
               player.role === 'citizen' ? '👤 شعب' :
               player.role === 'mafia' ? '🕵️‍♂️ مافيا' :
