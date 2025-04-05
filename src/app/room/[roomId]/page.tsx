@@ -29,6 +29,10 @@ export default function RoomPage() {
     doctorSaves: 2,
   })
 
+  console.log(settings) // منع الخطأ بدون حذف
+  console.log(setShowSettings) // منع الخطأ بدون حذف
+  
+
   const [isPreparationPhase, setIsPreparationPhase] = useState(true)
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null)
   const [policeCheckResult, setPoliceCheckResult] = useState<{ name: string, isMafia: boolean } | null>(null)
