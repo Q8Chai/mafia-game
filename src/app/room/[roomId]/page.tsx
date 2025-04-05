@@ -83,20 +83,41 @@ export default function RoomPage() {
       <div className="mt-6 w-full max-w-md text-right">
         <h2 className="text-lg font-semibold mb-4">اللاعبين في الغرفة:</h2>
         <div className="flex flex-col gap-3">
-          {players.map((player, i) => (
-            <div
-              key={`${player.name}-${i}`}
-              className="flex items-center justify-between bg-gray-800 border border-white px-4 py-2 rounded-lg"
-            >
-              <span className={isMafia && (player.role === 'mafia' || player.role?.startsWith('mafia')) ? 'text-red-500 font-bold' : 'text-white'}>
-                {player.name}
-              </span>
-              <span className="text-sm text-yellow-400">
-                {roleIcon(player)}
-              </span>
-            </div>
-          ))}
+          {players.map((player, i) => {
+            const isCurrentPlayer = player.name === playerName
+            const isVisibleToMafia =
+              isMafia &&
+              (player.role === 'mafia' || player.role === 'mafia-leader' || player.role === 'mafia-police')
+
+            const showRole = isCurrentPlayer || isVisibleToMafia
+
+            const icon = player.eliminated
+              ? '💀 مطرود'
+              : showRole
+                ? player.role === 'citizen' ? '👤 شعب'
+                  : player.role === 'mafia' ? '🕵️‍♂️ مافيا'
+                    : player.role === 'mafia-leader' ? '👑 زعيم'
+                      : player.role === 'mafia-police' ? '🕶️ شرطي مافيا'
+                        : player.role === 'police' ? '👮‍♂️ شرطي'
+                          : player.role === 'sniper' ? '🎯 قناص'
+                            : player.role === 'doctor' ? '🩺 طبيب'
+                              : ''
+                : ''
+
+            return (
+              <div
+                key={`${player.name}-${i}`}
+                className="flex items-center justify-between bg-gray-800 border border-white px-4 py-2 rounded-lg"
+              >
+                <span className={isVisibleToMafia ? 'text-red-500 font-bold' : 'text-white'}>
+                  {player.name}
+                </span>
+                <span className="text-sm text-yellow-400">{icon}</span>
+              </div>
+            )
+          })}
         </div>
+
       </div>
 
       {isHost && (
@@ -169,11 +190,10 @@ export default function RoomPage() {
               <button
                 onClick={handleStartGame}
                 disabled={players.length < 5}
-                className={`px-4 py-2 rounded font-bold transition ${
-                  players.length < 5
+                className={`px-4 py-2 rounded font-bold transition ${players.length < 5
                     ? 'bg-gray-600 cursor-not-allowed'
                     : 'bg-green-600 hover:bg-green-700'
-                }`}
+                  }`}
               >
                 ابدأ اللعبة
               </button>
@@ -188,16 +208,16 @@ export default function RoomPage() {
           {role === 'doctor'
             ? 'طبيب'
             : role === 'mafia'
-            ? 'مافيا'
-            : role === 'mafia-leader'
-            ? 'زعيم المافيا'
-            : role === 'mafia-police'
-            ? 'شرطي مافيا'
-            : role === 'police'
-            ? 'شرطي'
-            : role === 'sniper'
-            ? 'قناص'
-            : 'شعب'}
+              ? 'مافيا'
+              : role === 'mafia-leader'
+                ? 'زعيم المافيا'
+                : role === 'mafia-police'
+                  ? 'شرطي مافيا'
+                  : role === 'police'
+                    ? 'شرطي'
+                    : role === 'sniper'
+                      ? 'قناص'
+                      : 'شعب'}
         </div>
       )}
     </main>
