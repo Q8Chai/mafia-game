@@ -59,20 +59,20 @@ export default function RoomPage() {
     setShowSettings(false)
   }
 
-  const roleIcon = (player: Player) => {
-    if (player.eliminated) return '💀 مطرود'
-    if (player.name !== playerName && !isMafia) return ''
-    switch (player.role) {
-      case 'citizen': return '👤 شعب'
-      case 'mafia': return '🕵️‍♂️ مافيا'
-      case 'mafia-leader': return '👑 زعيم'
-      case 'mafia-police': return '🕶️ شرطي مافيا'
-      case 'police': return '👮‍♂️ شرطي'
-      case 'sniper': return '🎯 قناص'
-      case 'doctor': return '🩺 طبيب'
-      default: return ''
-    }
-  }
+  // const roleIcon = (player: Player) => {
+  //   if (player.eliminated) return '💀 مطرود'
+  //   if (player.name !== playerName && !isMafia) return ''
+  //   switch (player.role) {
+  //     case 'citizen': return '👤 شعب'
+  //     case 'mafia': return '🕵️‍♂️ مافيا'
+  //     case 'mafia-leader': return '👑 زعيم'
+  //     case 'mafia-police': return '🕶️ شرطي مافيا'
+  //     case 'police': return '👮‍♂️ شرطي'
+  //     case 'sniper': return '🎯 قناص'
+  //     case 'doctor': return '🩺 طبيب'
+  //     default: return ''
+  //   }
+  // }
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-white p-4">
