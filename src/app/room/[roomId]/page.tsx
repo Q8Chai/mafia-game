@@ -19,6 +19,7 @@ export default function RoomPage() {
 
   const [players, setPlayers] = useState<Player[]>([])
   const [role, setRole] = useState<string>('')
+
   const [showSettings, setShowSettings] = useState(false)
   const [settings, setSettings] = useState({
     mafiaCount: 3,
@@ -63,9 +64,6 @@ export default function RoomPage() {
     setPoliceCheckResult(null)
     setSelectedPlayer(null)
   }
-
-  // ✅ تم نقل السطر بعد تعريف الدالة
-  console.log(showSettings, setSettings, handleStartGame)
 
   const handlePlayerCheck = () => {
     const target = players.find(p => p.name === selectedPlayer)
@@ -134,7 +132,6 @@ export default function RoomPage() {
             إعدادات اللعبة
           </button>
           <button
-            onClick={handleStartGame}
             disabled={isPreparationPhase}
             className={`font-bold py-2 px-4 rounded ${
               isPreparationPhase ? 'bg-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
@@ -145,6 +142,67 @@ export default function RoomPage() {
           <button className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
             طرد لاعب
           </button>
+        </div>
+      )}
+
+      {showSettings && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 bg-opacity-80 backdrop-blur-lg p-6 rounded-xl w-full max-w-md text-white space-y-4 shadow-2xl border border-white/20">
+            <h2 className="text-xl font-bold mb-4 text-center">إعدادات اللعبة</h2>
+
+            <label>عدد المافيا</label>
+            <select className="w-full p-2 rounded bg-gray-800" value={settings.mafiaCount}
+              onChange={(e) => setSettings({ ...settings, mafiaCount: parseInt(e.target.value) })}>
+              {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+
+            <label>عدد الاغتيالات</label>
+            <select className="w-full p-2 rounded bg-gray-800" value={settings.mafiaKills}
+              onChange={(e) => setSettings({ ...settings, mafiaKills: parseInt(e.target.value) })}>
+              {[1, 2, 3].map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+
+            <label>عدد مرات الاسكات الجماعي</label>
+            <select className="w-full p-2 rounded bg-gray-800" value={settings.mafiaSilence}
+              onChange={(e) => setSettings({ ...settings, mafiaSilence: parseInt(e.target.value) })}>
+              {[1, 2].map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+
+            <label>اسكات لاعب معين</label>
+            <select className="w-full p-2 rounded bg-gray-800" value={settings.mafiaTargetSilence}
+              onChange={(e) => setSettings({ ...settings, mafiaTargetSilence: parseInt(e.target.value) })}>
+              {[0, 1].map(n => <option key={n} value={n}>{n === 1 ? 'مسموح' : 'غير مسموح'}</option>)}
+            </select>
+
+            <label>عدد أسئلة الشرطي</label>
+            <select className="w-full p-2 rounded bg-gray-800" value={settings.policeQuestions}
+              onChange={(e) => setSettings({ ...settings, policeQuestions: parseInt(e.target.value) })}>
+              {[1, 2, 3].map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+
+            <label>عدد مرات الحماية للطبيب</label>
+            <select className="w-full p-2 rounded bg-gray-800" value={settings.doctorSaves}
+              onChange={(e) => setSettings({ ...settings, doctorSaves: parseInt(e.target.value) })}>
+              {[1, 2, 3].map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+
+            <div className="flex justify-between pt-4">
+              <button onClick={() => setShowSettings(false)} className="px-4 py-2 bg-gray-700 rounded">
+                إلغاء
+              </button>
+              <button
+                onClick={handleStartGame}
+                disabled={players.length < 5}
+                className={`px-4 py-2 rounded font-bold transition ${
+                  players.length < 5
+                    ? 'bg-gray-600 cursor-not-allowed'
+                    : 'bg-green-600 hover:bg-green-700'
+                }`}
+              >
+                ابدأ اللعبة
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
