@@ -100,7 +100,7 @@ export default function RoomPage() {
       </div>
 
       {isHost && (
-        <div className="flex flex-col gap-4 items-start mt-10">
+        <div className="flex flex-col items-end gap-4 fixed right-8 top-8">
           <button
             onClick={() => setShowSettings(true)}
             className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
