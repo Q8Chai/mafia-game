@@ -29,10 +29,6 @@ export default function RoomPage() {
     doctorSaves: 2,
   })
 
-  console.log(settings) // منع الخطأ بدون حذف
-  console.log(setShowSettings) // منع الخطأ بدون حذف
-  
-
   const [isPreparationPhase, setIsPreparationPhase] = useState(true)
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null)
   const [policeCheckResult, setPoliceCheckResult] = useState<{ name: string, isMafia: boolean } | null>(null)
@@ -42,7 +38,6 @@ export default function RoomPage() {
 
   useEffect(() => {
     const socket = getSocket()
-
     if (!socket.connected) socket.connect()
 
     socket.emit('join-room', { roomId, name: playerName })
@@ -68,6 +63,9 @@ export default function RoomPage() {
     setPoliceCheckResult(null)
     setSelectedPlayer(null)
   }
+
+  // ✅ تم نقل السطر بعد تعريف الدالة
+  console.log(showSettings, setSettings, handleStartGame)
 
   const handlePlayerCheck = () => {
     const target = players.find(p => p.name === selectedPlayer)
@@ -136,6 +134,7 @@ export default function RoomPage() {
             إعدادات اللعبة
           </button>
           <button
+            onClick={handleStartGame}
             disabled={isPreparationPhase}
             className={`font-bold py-2 px-4 rounded ${
               isPreparationPhase ? 'bg-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
