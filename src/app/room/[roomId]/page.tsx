@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useParams } from 'next/navigation'
 import { getSocket } from '@/lib/socket'
 
 type Player = {
@@ -10,11 +10,12 @@ type Player = {
   eliminated?: boolean
 }
 
-export default function RoomPage({ params }: { params: { roomId: string } }) {
+export default function RoomPage() {
   const searchParams = useSearchParams()
+  const params = useParams()
+  const roomId = params.roomId as string
   const playerName = searchParams.get('name') || ''
   const isHost = searchParams.get('host') === 'true'
-  const { roomId } = params
 
   const [players, setPlayers] = useState<Player[]>([])
   const [role, setRole] = useState<string>('')
