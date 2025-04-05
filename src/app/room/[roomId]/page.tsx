@@ -12,21 +12,10 @@ type Player = {
 export default function RoomPage({ params }: { params: { roomId: string } }) {
   const searchParams = useSearchParams()
   const playerName = searchParams.get('name') || ''
-  const isHost = searchParams.get('host') === 'true'
   const roomId = params.roomId
 
   const [players, setPlayers] = useState<Player[]>([])
   const [role, setRole] = useState<string>('')
-
-  const [showSettings, setShowSettings] = useState(false)
-  const [settings, setSettings] = useState({
-    mafiaCount: 3,
-    mafiaKills: 2,
-    mafiaSilence: 2,
-    mafiaTargetSilence: 1,
-    policeQuestions: 2,
-    doctorSaves: 2,
-  })
 
   const isMafia = role === 'mafia' || role === 'mafia-leader' || role === 'mafia-police'
 
@@ -54,7 +43,6 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
     <main className="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-white p-4">
       <div className="flex justify-between w-full max-w-4xl">
         <button
-          onClick={() => setShowSettings(true)}
           className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
         >
           إعدادات اللعبة
