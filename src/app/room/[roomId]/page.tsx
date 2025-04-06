@@ -248,7 +248,7 @@ export default function RoomPage() {
             ? 'قناص'
             : 'شعب'}
         </div>
-      )}
+      )} 
     </main>
   )
 }
