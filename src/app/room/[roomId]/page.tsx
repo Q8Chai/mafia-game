@@ -33,7 +33,7 @@ export default function RoomPage() {
   const [isPreparationPhase, setIsPreparationPhase] = useState(true)
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null)
   const [policeCheckResult, setPoliceCheckResult] = useState<{ name: string, isMafia: boolean } | null>(null)
-  const [policeDone, setPoliceDone] = useState(false)
+  const [policeFinished, setPoliceFinished] = useState(false)
 
   const isMafia = role === 'mafia' || role === 'mafia-leader' || role === 'mafia-police'
   const isPolice = role === 'police'
@@ -64,7 +64,7 @@ export default function RoomPage() {
     setIsPreparationPhase(true)
     setPoliceCheckResult(null)
     setSelectedPlayer(null)
-    setPoliceDone(false)
+    setPoliceFinished(false)
   }
 
   const handlePlayerCheck = () => {
@@ -72,13 +72,16 @@ export default function RoomPage() {
     if (!target) return
     const isTargetMafia = ['mafia', 'mafia-leader', 'mafia-police'].includes(target.role || '')
     setPoliceCheckResult({ name: target.name, isMafia: isTargetMafia })
-    setPoliceDone(true)
+    setPoliceFinished(true)
   }
 
-  const handleSkipCheck = () => {
+  const handlePostpone = () => {
     setSelectedPlayer(null)
-    setPoliceDone(true)
+    setPoliceCheckResult(null)
+    setPoliceFinished(true)
   }
+
+  const canStartRound = !isPreparationPhase || policeFinished
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-white p-4">
@@ -93,6 +96,18 @@ export default function RoomPage() {
             const isSelf = player.name === playerName
             const isMafiaViewable = isMafia && (player.role === 'mafia' || player.role?.startsWith('mafia'))
 
+            const isChecked = policeCheckResult?.name === player.name
+            const isCheckedMafia = policeCheckResult?.isMafia
+
+            const nameColor = isChecked && isPolice
+              ? isCheckedMafia ? 'text-red-500 font-bold' : 'text-green-500 font-bold'
+              : isMafiaViewable ? 'text-red-500 font-bold' : 'text-white'
+
+            const highlight =
+              selectedPlayer === player.name && isPolice && isPreparationPhase
+                ? 'ring-2 ring-yellow-400'
+                : ''
+
             const icon = player.eliminated ? '💀 مطرود' :
               isSelf || isMafiaViewable ? (
                 player.role === 'citizen' ? '👤 شعب' :
@@ -104,24 +119,17 @@ export default function RoomPage() {
                 player.role === 'doctor' ? '🩺 طبيب' : ''
               ) : ''
 
-            const highlight =
-              policeCheckResult?.name === player.name && isPolice
-                ? policeCheckResult.isMafia
-                  ? 'text-red-500'
-                  : 'text-green-500'
-                : selectedPlayer === player.name && isPolice && isPreparationPhase
-                ? 'ring-2 ring-yellow-400'
-                : ''
-
             return (
               <div
                 key={`${player.name}-${i}`}
                 onClick={() => {
-                  if (isPolice && isPreparationPhase && !policeDone) setSelectedPlayer(player.name)
+                  if (isPolice && isPreparationPhase && !policeCheckResult) {
+                    setSelectedPlayer(player.name)
+                  }
                 }}
                 className={`flex items-center justify-between bg-gray-800 border border-white px-4 py-2 rounded-lg cursor-pointer ${highlight}`}
               >
-                <span className={isMafiaViewable ? 'text-red-500 font-bold' : 'text-white'}>
+                <span className={nameColor}>
                   {player.name}
                 </span>
                 <span className="text-sm text-yellow-400">{icon}</span>
@@ -140,9 +148,9 @@ export default function RoomPage() {
             إعدادات اللعبة
           </button>
           <button
-            disabled={isPreparationPhase && !policeDone}
+            disabled={!canStartRound}
             className={`font-bold py-2 px-4 rounded ${
-              isPreparationPhase && !policeDone ? 'bg-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
+              !canStartRound ? 'bg-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
             }`}
           >
             ابدأ الجولة
@@ -158,7 +166,6 @@ export default function RoomPage() {
           <div className="bg-gray-800 bg-opacity-80 backdrop-blur-lg p-6 rounded-xl w-full max-w-md text-white space-y-4 shadow-2xl border border-white/20">
             <h2 className="text-xl font-bold mb-4 text-center">إعدادات اللعبة</h2>
 
-            {/* إعدادات */}
             <label>عدد المافيا</label>
             <select className="w-full p-2 rounded bg-gray-800" value={settings.mafiaCount}
               onChange={(e) => setSettings({ ...settings, mafiaCount: parseInt(e.target.value) })}>
@@ -203,7 +210,9 @@ export default function RoomPage() {
                 onClick={handleStartGame}
                 disabled={players.length < 5}
                 className={`px-4 py-2 rounded font-bold transition ${
-                  players.length < 5 ? 'bg-gray-600 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
+                  players.length < 5
+                    ? 'bg-gray-600 cursor-not-allowed'
+                    : 'bg-green-600 hover:bg-green-700'
                 }`}
               >
                 ابدأ اللعبة
@@ -213,12 +222,12 @@ export default function RoomPage() {
         </div>
       )}
 
-      {isPolice && isPreparationPhase && !policeDone && (
+      {isPolice && isPreparationPhase && !policeFinished && (
         <div className="mt-8 flex flex-col items-center gap-3">
           <p className="text-lg font-semibold">👮‍♂️ دورك الآن! اختر لاعبًا:</p>
           <div className="flex gap-4">
             <button
-              onClick={handleSkipCheck}
+              onClick={handlePostpone}
               className="bg-gray-700 hover:bg-gray-800 text-white py-2 px-4 rounded"
             >
               تأجيل السؤال
@@ -238,12 +247,19 @@ export default function RoomPage() {
       {role && (
         <div className="mt-8 text-xl font-bold text-yellow-400 flex items-center gap-2">
           🎭 دورك هو:{' '}
-          {role === 'doctor' ? 'طبيب' :
-            role === 'mafia' ? 'مافيا' :
-            role === 'mafia-leader' ? 'زعيم المافيا' :
-            role === 'mafia-police' ? 'شرطي مافيا' :
-            role === 'police' ? 'شرطي' :
-            role === 'sniper' ? 'قناص' : 'شعب'}
+          {role === 'doctor'
+            ? 'طبيب'
+            : role === 'mafia'
+            ? 'مافيا'
+            : role === 'mafia-leader'
+            ? 'زعيم المافيا'
+            : role === 'mafia-police'
+            ? 'شرطي مافيا'
+            : role === 'police'
+            ? 'شرطي'
+            : role === 'sniper'
+            ? 'قناص'
+            : 'شعب'}
         </div>
       )}
     </main>
