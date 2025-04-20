@@ -27,19 +27,14 @@ export default function RoomPage() {
     mafiaTargetSilence: 1,
     policeQuestions: 2,
     doctorSaves: 2,
-    isHostJudge: false
+    isReferee: false,
   })
 
-  const [isPreparationPhase, setIsPreparationPhase] = useState(true)
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null)
-  const [policeCheckResult, setPoliceCheckResult] = useState<{ name: string, isMafia: boolean } | null>(null)
-  const [policeFinished, setPoliceFinished] = useState(false)
-  const [kickMode, setKickMode] = useState(false)
-  const [playerToKick, setPlayerToKick] = useState<string | null>(null)
+  const [showKickMode, setShowKickMode] = useState(false)
 
-  const isMafia = role === 'mafia' || role === 'mafia-leader' || role === 'mafia-police'
-  const isPolice = role === 'police'
-  const isJudge = isHost && settings.isHostJudge
+  const isMafia = ['mafia', 'mafia-leader', 'mafia-police'].includes(role)
+  const isReferee = isHost && settings.isReferee && role === ''
 
   useEffect(() => {
     const socket = getSocket()
@@ -64,36 +59,32 @@ export default function RoomPage() {
     const socket = getSocket()
     socket.emit('start-game', roomId, settings)
     setShowSettings(false)
-    setIsPreparationPhase(true)
-    setPoliceCheckResult(null)
-    setSelectedPlayer(null)
-    setPoliceFinished(false)
-  }
-
-  const handlePlayerCheck = () => {
-    const target = players.find(p => p.name === selectedPlayer)
-    if (!target) return
-    const isTargetMafia = ['mafia', 'mafia-leader', 'mafia-police'].includes(target.role || '')
-    setPoliceCheckResult({ name: target.name, isMafia: isTargetMafia })
-    setPoliceFinished(true)
-  }
-
-  const handlePostpone = () => {
-    setSelectedPlayer(null)
-    setPoliceCheckResult(null)
-    setPoliceFinished(true)
   }
 
   const handleKick = () => {
-    const socket = getSocket()
-    if (playerToKick) {
-      socket.emit('kick-player', { roomId, name: playerToKick })
-      setPlayerToKick(null)
-      setKickMode(false)
+    if (selectedPlayer) {
+      const socket = getSocket()
+      socket.emit('kick-player', { roomId, name: selectedPlayer })
+      setSelectedPlayer(null)
+      setShowKickMode(false)
     }
   }
 
-  const canStartRound = !isPreparationPhase || policeFinished
+  const roleIcon = (player: Player) => {
+    if (player.eliminated) return '💀 مطرود'
+    if (isReferee || player.name === playerName || (isMafia && ['mafia', 'mafia-leader', 'mafia-police'].includes(player.role || ''))) {
+      switch (player.role) {
+        case 'citizen': return '👤 شعب'
+        case 'mafia': return '🕵️‍♂️ مافيا'
+        case 'mafia-leader': return '👑 زعيم'
+        case 'mafia-police': return '🕶️ شرطي مافيا'
+        case 'police': return '👮‍♂️ شرطي'
+        case 'sniper': return '🎯 قناص'
+        case 'doctor': return '🩺 طبيب'
+      }
+    }
+    return ''
+  }
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-white p-4">
@@ -104,75 +95,39 @@ export default function RoomPage() {
       <div className="mt-6 w-full max-w-md text-right">
         <h2 className="text-lg font-semibold mb-4">اللاعبين في الغرفة:</h2>
         <div className="flex flex-col gap-3">
-          {players.map((player, i) => {
-            const isSelf = player.name === playerName
-            const isMafiaViewable = isMafia && (player.role === 'mafia' || player.role?.startsWith('mafia'))
-            const isChecked = policeCheckResult?.name === player.name
-            const isCheckedMafia = policeCheckResult?.isMafia
-            const canSeeRole = isSelf || isMafiaViewable || isJudge
-
-            const nameColor = isChecked && isPolice
-              ? isCheckedMafia ? 'text-red-500 font-bold' : 'text-green-500 font-bold'
-              : isMafiaViewable ? 'text-red-500 font-bold'
-              : isJudge ? 'text-blue-400 font-bold'
-              : 'text-white'
-
-            const highlight =
-              selectedPlayer === player.name && isPolice && isPreparationPhase
-                ? 'ring-2 ring-yellow-400'
-                : ''
-
-            const icon = player.eliminated ? '💀 مطرود' :
-              canSeeRole ? (
-                player.role === 'citizen' ? '👤 شعب' :
-                player.role === 'mafia' ? '🕵️‍♂️ مافيا' :
-                player.role === 'mafia-leader' ? '👑 زعيم' :
-                player.role === 'mafia-police' ? '🕶️ شرطي مافيا' :
-                player.role === 'police' ? '👮‍♂️ شرطي' :
-                player.role === 'sniper' ? '🎯 قناص' :
-                player.role === 'doctor' ? '🩺 طبيب' : ''
-              ) : ''
-
-            return (
-              <div
-                key={`${player.name}-${i}`}
-                onClick={() => {
-                  if (kickMode && isHost) setPlayerToKick(player.name)
-                  else if (isPolice && isPreparationPhase && !policeCheckResult) setSelectedPlayer(player.name)
-                }}
-                className={`flex items-center justify-between bg-gray-800 border border-white px-4 py-2 rounded-lg cursor-pointer ${highlight}`}
-              >
-                <span className={nameColor}>{player.name}</span>
-                <span className="text-sm text-yellow-400">{icon}</span>
-              </div>
-            )
-          })}
+          {players.map((player, i) => (
+            <div
+              key={`${player.name}-${i}`}
+              onClick={() => showKickMode && setSelectedPlayer(player.name)}
+              className={`flex items-center justify-between bg-gray-800 border border-white px-4 py-2 rounded-lg cursor-pointer ${selectedPlayer === player.name ? 'ring-2 ring-red-400' : ''}`}
+            >
+              <span className="text-white">{player.name}</span>
+              <span className="text-sm text-yellow-400">{roleIcon(player)}</span>
+            </div>
+          ))}
         </div>
       </div>
 
       {isHost && (
         <div className="flex flex-col items-end gap-4 fixed right-8 top-8">
-          <button onClick={() => setShowSettings(true)} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+          <button
+            onClick={() => setShowSettings(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          >
             إعدادات اللعبة
           </button>
           <button
-            disabled={!canStartRound}
-            className={`font-bold py-2 px-4 rounded ${!canStartRound ? 'bg-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
-          >
-            ابدأ الجولة
-          </button>
-          <button
-            onClick={() => setKickMode(!kickMode)}
+            onClick={() => setShowKickMode(!showKickMode)}
             className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
           >
-            {kickMode ? 'تأكيد الطرد' : 'طرد لاعب'}
+            طرد لاعب
           </button>
-          {kickMode && playerToKick && (
+          {showKickMode && selectedPlayer && (
             <button
               onClick={handleKick}
-              className="bg-red-400 hover:bg-red-600 text-white font-bold py-2 px-4 rounded"
+              className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-2 px-4 rounded"
             >
-              تأكيد طرد {playerToKick}
+              تأكيد طرد: {selectedPlayer}
             </button>
           )}
         </div>
@@ -180,106 +135,30 @@ export default function RoomPage() {
 
       {showSettings && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 bg-opacity-80 backdrop-blur-lg p-6 rounded-xl w-full max-w-md text-white space-y-4 shadow-2xl border border-white/20">
+          <div className="bg-gray-800 bg-opacity-90 backdrop-blur p-6 rounded-xl w-full max-w-md text-white space-y-4 shadow-2xl border border-white/20">
             <h2 className="text-xl font-bold mb-4 text-center">إعدادات اللعبة</h2>
 
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={settings.isReferee}
+                onChange={(e) => setSettings({ ...settings, isReferee: e.target.checked })}
+              />
+              أنا الحكم
+            </label>
+
+            {/* بقية الإعدادات مثل عدد المافيا وغيرها */}
             <label>عدد المافيا</label>
             <select className="w-full p-2 rounded bg-gray-800" value={settings.mafiaCount}
               onChange={(e) => setSettings({ ...settings, mafiaCount: parseInt(e.target.value) })}>
               {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n}</option>)}
             </select>
 
-            <label>عدد الاغتيالات</label>
-            <select className="w-full p-2 rounded bg-gray-800" value={settings.mafiaKills}
-              onChange={(e) => setSettings({ ...settings, mafiaKills: parseInt(e.target.value) })}>
-              {[1, 2, 3].map(n => <option key={n} value={n}>{n}</option>)}
-            </select>
-
-            <label>عدد مرات الاسكات الجماعي</label>
-            <select className="w-full p-2 rounded bg-gray-800" value={settings.mafiaSilence}
-              onChange={(e) => setSettings({ ...settings, mafiaSilence: parseInt(e.target.value) })}>
-              {[1, 2].map(n => <option key={n} value={n}>{n}</option>)}
-            </select>
-
-            <label>اسكات لاعب معين</label>
-            <select className="w-full p-2 rounded bg-gray-800" value={settings.mafiaTargetSilence}
-              onChange={(e) => setSettings({ ...settings, mafiaTargetSilence: parseInt(e.target.value) })}>
-              {[0, 1].map(n => <option key={n} value={n}>{n === 1 ? 'مسموح' : 'غير مسموح'}</option>)}
-            </select>
-
-            <label>عدد أسئلة الشرطي</label>
-            <select className="w-full p-2 rounded bg-gray-800" value={settings.policeQuestions}
-              onChange={(e) => setSettings({ ...settings, policeQuestions: parseInt(e.target.value) })}>
-              {[1, 2, 3].map(n => <option key={n} value={n}>{n}</option>)}
-            </select>
-
-            <label>عدد مرات الحماية للطبيب</label>
-            <select className="w-full p-2 rounded bg-gray-800" value={settings.doctorSaves}
-              onChange={(e) => setSettings({ ...settings, doctorSaves: parseInt(e.target.value) })}>
-              {[1, 2, 3].map(n => <option key={n} value={n}>{n}</option>)}
-            </select>
-
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={settings.isHostJudge}
-                onChange={(e) => setSettings({ ...settings, isHostJudge: e.target.checked })}
-              />
-              أنا الحكم
-            </label>
-
             <div className="flex justify-between pt-4">
               <button onClick={() => setShowSettings(false)} className="px-4 py-2 bg-gray-700 rounded">إلغاء</button>
-              <button
-                onClick={handleStartGame}
-                disabled={players.length < 5}
-                className={`px-4 py-2 rounded font-bold transition ${players.length < 5 ? 'bg-gray-600 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
-              >
-                ابدأ اللعبة
-              </button>
+              <button onClick={handleStartGame} className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded">ابدأ اللعبة</button>
             </div>
           </div>
-        </div>
-      )}
-
-      {isPolice && isPreparationPhase && !policeFinished && (
-        <div className="mt-8 flex flex-col items-center gap-3">
-          <p className="text-lg font-semibold">👮‍♂️ دورك الآن! اختر لاعبًا:</p>
-          <div className="flex gap-4">
-            <button
-              onClick={handlePostpone}
-              className="bg-gray-700 hover:bg-gray-800 text-white py-2 px-4 rounded"
-            >
-              تأجيل السؤال
-            </button>
-            {selectedPlayer && (
-              <button
-                onClick={handlePlayerCheck}
-                className="bg-yellow-500 hover:bg-yellow-600 text-black py-2 px-4 rounded"
-              >
-                تأكيد السؤال عن: {selectedPlayer}
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {role && (
-        <div className="mt-8 text-xl font-bold text-yellow-400 flex items-center gap-2">
-          🎭 دورك هو:{' '}
-          {role === 'doctor'
-            ? 'طبيب'
-            : role === 'mafia'
-            ? 'مافيا'
-            : role === 'mafia-leader'
-            ? 'زعيم المافيا'
-            : role === 'mafia-police'
-            ? 'شرطي مافيا'
-            : role === 'police'
-            ? 'شرطي'
-            : role === 'sniper'
-            ? 'قناص'
-            : 'شعب'}
         </div>
       )}
     </main>
