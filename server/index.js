@@ -45,6 +45,12 @@ io.on('connection', (socket) => {
     }
   })
 
+  socket.on('check-room', (roomId, callback) => {
+    const exists = !!rooms[roomId]
+    callback(exists)
+  })
+  
+
   socket.on('start-game', (roomId, settings) => {
     if (!rooms[roomId]) return
 
