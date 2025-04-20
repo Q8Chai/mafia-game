@@ -80,12 +80,12 @@ export default function RoomPage() {
     setPoliceCheckResult(null)
     setSelectedPlayer(null)
     setPoliceFinished(false)
-    
+
     // إضافة مؤقت لتفعيل زر "ابدأ الجولة" بعد 30 ثانية
     const timer = window.setTimeout(() => {
       setPoliceFinished(true)
     }, 30000)
-    
+
     setRoundStartTimer(timer)
   }
 
@@ -144,17 +144,23 @@ export default function RoomPage() {
             const isMafiaViewable = isMafia && (player.role === 'mafia' || player.role?.startsWith('mafia'))
             const isChecked = policeCheckResult?.name === player.name
             const isCheckedMafia = policeCheckResult?.isMafia
-            
+
             const nameColor = isChecked && isPolice
               ? isCheckedMafia ? 'text-red-500 font-bold' : 'text-green-500 font-bold'
               : isMafiaViewable ? 'text-red-500 font-bold'
-              : isJudge ? 'text-blue-400 font-bold'
-              : 'text-white'
+                : isJudge ? 'text-blue-400 font-bold'
+                  : 'text-white'
 
             const highlight =
               selectedPlayer === player.name && isPolice && isPreparationPhase
                 ? 'ring-2 ring-yellow-400'
                 : kickMode && isHost ? 'ring-2 ring-red-400 cursor-pointer' : ''
+
+            // const canSeeRole =
+            //   player.name === playerName ||
+            //   (isMafia && (player.role?.startsWith('mafia') || player.role === 'mafia')) ||
+            //   role === 'judge'
+
 
             // تحسين عرض الأيقونات
             let icon = ''
@@ -162,7 +168,7 @@ export default function RoomPage() {
               icon = '💀 مطرود'
             } else if (player.role === 'judge') {
               icon = '⚖️ حكم'
-            } else if (player.role === 'citizen') {
+            } else if (player.role === 'citizen' && (isMafia || isJudge)) {
               icon = '👤 شعب'
             } else if (player.role === 'mafia' && (isMafia || isJudge)) {
               icon = '🕵️‍♂️ مافيا'
@@ -337,18 +343,18 @@ export default function RoomPage() {
           {role === 'doctor'
             ? 'طبيب'
             : role === 'mafia'
-            ? 'مافيا'
-            : role === 'mafia-leader'
-            ? 'زعيم المافيا'
-            : role === 'mafia-police'
-            ? 'شرطي مافيا'
-            : role === 'police'
-            ? 'شرطي'
-            : role === 'sniper'
-            ? 'قناص'
-            : role === 'judge'
-            ? 'حكم'
-            : 'شعب'}
+              ? 'مافيا'
+              : role === 'mafia-leader'
+                ? 'زعيم المافيا'
+                : role === 'mafia-police'
+                  ? 'شرطي مافيا'
+                  : role === 'police'
+                    ? 'شرطي'
+                    : role === 'sniper'
+                      ? 'قناص'
+                      : role === 'judge'
+                        ? 'حكم'
+                        : 'شعب'}
         </div>
       )}
     </main>
