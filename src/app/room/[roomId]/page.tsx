@@ -168,7 +168,7 @@ export default function RoomPage() {
               icon = '💀 مطرود'
             } else if (player.role === 'judge') {
               icon = '⚖️ حكم'
-            } else if (player.role === 'citizen' && (isMafia || isJudge)) {
+            } else if (player.role === 'citizen' && (isSelf || isJudge)) {
               icon = '👤 شعب'
             } else if (player.role === 'mafia' && (isMafia || isJudge)) {
               icon = '🕵️‍♂️ مافيا'
