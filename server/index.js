@@ -1,100 +1,131 @@
-const { Server } = require("socket.io");
-const PORT = process.env.PORT || 3001;
-const io = new Server(PORT, {
+const express = require('express')
+const http = require('http')
+const { Server } = require('socket.io')
+const cors = require('cors')
+
+const app = express()
+const server = http.createServer(app)
+const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: '*',
   },
-});
+})
 
-const rooms = {};
-const roomSettings = {};
-const kickedPlayers = {}; // حفظ المطرودين من كل روم
+let rooms = {}
 
-io.on("connection", (socket) => {
-  socket.on("join-room", ({ roomId, name }) => {
-    if (!rooms[roomId]) rooms[roomId] = [];
-    if (!kickedPlayers[roomId]) kickedPlayers[roomId] = [];
-
-    const isKicked = kickedPlayers[roomId].includes(name);
-    if (isKicked) return;
-
-    if (!rooms[roomId].some((p) => p.name === name)) {
-      rooms[roomId].push({ name });
+io.on('connection', (socket) => {
+  socket.on('join-room', ({ roomId, name }) => {
+    socket.join(roomId)
+    if (!rooms[roomId]) {
+      rooms[roomId] = {
+        players: [],
+        settings: {},
+        roles: {},
+        judgeName: null,
+      }
     }
 
-    socket.join(roomId);
-    io.to(roomId).emit("room-players", rooms[roomId]);
-  });
-
-  socket.on("check-room", (roomId, callback) => {
-    const exists = !!rooms[roomId];
-    callback(exists);
-  });
-
-  socket.on("kick-player", ({ roomId, name }) => {
-    if (!rooms[roomId]) return;
-
-    // إزالة اللاعب من الغرفة
-    rooms[roomId] = rooms[roomId].filter((p) => p.name !== name);
-    kickedPlayers[roomId].push(name);
-
-    io.to(roomId).emit("room-players", rooms[roomId]);
-  });
-
-  socket.on("start-game", (roomId, settings) => {
-    const players = rooms[roomId] || [];
-    const playerNames = players.map((p) => p.name);
-    roomSettings[roomId] = settings;
-
-    const roles = assignRoles(playerNames, settings);
-    const playerData = players.map((player) => {
-      const found = roles.find((r) => r.name === player.name);
-      return { name: player.name, role: found?.role || "citizen" };
-    });
-
-    rooms[roomId] = playerData;
-
-    io.to(roomId).emit("room-players", playerData);
-    playerData.forEach(({ name, role }) => {
-      io.to(roomId).emit("assign-role", { name, role });
-    });
-  });
-});
-
-console.log(`🚀 Socket.IO server running at http://localhost:${PORT}`);
-
-function assignRoles(players, settings) {
-  const shuffled = [...players].sort(() => Math.random() - 0.5);
-  const roles = [];
-
-  const mafiaCount = settings.mafiaCount;
-  let current = 0;
-
-  // إذا الهوست مفعل "أنا حكم" لا نوزع له دور، نخزنه ونكمل
-  const judge = settings.judgeHost ? shuffled.shift() : null;
-
-  if (mafiaCount >= 1 && shuffled.length >= current + 1)
-    roles.push({ name: shuffled[current++], role: "mafia-leader" });
-  if (mafiaCount >= 2 && shuffled.length >= current + 1)
-    roles.push({ name: shuffled[current++], role: "mafia-police" });
-  for (let i = 2; i < mafiaCount && current < shuffled.length; i++) {
-    roles.push({ name: shuffled[current++], role: "mafia" });
-  }
-
-  const specialRoles = ["police", "sniper", "doctor"];
-  for (let role of specialRoles) {
-    if (current < shuffled.length) {
-      roles.push({ name: shuffled[current++], role });
+    const playerExists = rooms[roomId].players.find((p) => p.name === name)
+    if (!playerExists) {
+      rooms[roomId].players.push({ name })
     }
-  }
 
-  for (let i = current; i < shuffled.length; i++) {
-    roles.push({ name: shuffled[i], role: "citizen" });
-  }
+    // أرسل معلومات الأدوار إذا كانت اللعبة قد بدأت
+    if (Object.keys(rooms[roomId].roles).length > 0) {
+      const role = rooms[roomId].roles[name] || ''
+      socket.emit('assign-role', { name, role })
+      
+      // أرسل معلومات اللاعبين مع أدوارهم
+      io.to(roomId).emit('room-players', rooms[roomId].players.map(p => ({
+        ...p,
+        role: rooms[roomId].roles[p.name] || '',
+      })))
+    } else {
+      io.to(roomId).emit('room-players', rooms[roomId].players)
+    }
+  })
 
-  if (judge) {
-    roles.push({ name: judge, role: "observer" });
-  }
+  socket.on('start-game', (roomId, settings) => {
+    if (!rooms[roomId]) return
 
-  return roles;
-}
+    const players = [...rooms[roomId].players]
+    const isJudge = settings.isHostJudge
+    const judgeName = isJudge ? players[0].name : null
+    rooms[roomId].judgeName = judgeName
+    rooms[roomId].settings = settings
+
+    // استبعاد الحكم من توزيع الأدوار
+    const playersToAssignRoles = isJudge 
+      ? players.filter(p => p.name !== judgeName) 
+      : players
+
+    const totalPlayersInGame = playersToAssignRoles.length
+    const mafiaCount = Math.min(settings.mafiaCount || 3, Math.floor(totalPlayersInGame / 3))
+    const roles = ['doctor', 'sniper', 'police']
+
+    const mafiaRoles = ['mafia-leader', 'mafia-police']
+    for (let i = 2; i < mafiaCount; i++) mafiaRoles.push('mafia')
+
+    const remainingRoles = [...mafiaRoles, ...roles]
+    const shuffledPlayers = playersToAssignRoles.sort(() => 0.5 - Math.random())
+
+    const assignedRoles = {}
+    
+    // تعيين الأدوار للاعبين (ما عدا الحكم)
+    for (const player of shuffledPlayers) {
+      const role = remainingRoles.length > 0 ? remainingRoles.shift() : 'citizen'
+      assignedRoles[player.name] = role
+    }
+
+    // تعيين دور الحكم إذا كان الهوست حكمًا
+    if (isJudge && judgeName) {
+      assignedRoles[judgeName] = 'judge'
+    }
+
+    rooms[roomId].roles = assignedRoles
+
+    // إرسال الأدوار إلى اللاعبين
+    for (const player of players) {
+      const role = assignedRoles[player.name] || ''
+      io.to(roomId).emit('assign-role', { name: player.name, role })
+    }
+
+    // تحديث حالة اللاعبين في الغرفة
+    io.to(roomId).emit('room-players', players.map(p => ({
+      ...p,
+      role: assignedRoles[p.name] || ''
+    })))
+  })
+
+  socket.on('kick-player', ({ roomId, name }) => {
+    if (!rooms[roomId]) return
+    
+    // تحديث قائمة اللاعبين بعد الطرد
+    rooms[roomId].players = rooms[roomId].players.filter(p => p.name !== name)
+    
+    // حذف الدور من قائمة الأدوار
+    if (rooms[roomId].roles[name]) {
+      delete rooms[roomId].roles[name]
+    }
+    
+    // إعلام جميع اللاعبين بالتغيير
+    io.to(roomId).emit('player-kicked', { name })
+    io.to(roomId).emit('room-players', rooms[roomId].players.map(p => ({
+      ...p,
+      role: rooms[roomId].roles[p.name] || ''
+    })))
+  })
+
+  socket.on('start-round', ({ roomId }) => {
+    if (!rooms[roomId]) return
+    io.to(roomId).emit('round-started')
+  })
+
+  socket.on('disconnect', () => {
+    // يمكن إضافة منطق لإزالة اللاعب عند قطع الاتصال هنا
+  })
+})
+
+server.listen(3001, () => {
+  console.log('Server is running on port 3001')
+})
