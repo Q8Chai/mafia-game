@@ -19,6 +19,8 @@ export default function RoomPage() {
 
   const [players, setPlayers] = useState<Player[]>([])
   const [role, setRole] = useState<string>('')
+  const [isJudge, setIsJudge] = useState(false)
+
   const [showSettings, setShowSettings] = useState(false)
   const [settings, setSettings] = useState({
     mafiaCount: 3,
@@ -27,7 +29,7 @@ export default function RoomPage() {
     mafiaTargetSilence: 1,
     policeQuestions: 2,
     doctorSaves: 2,
-    iAmJudge: false,
+    judgeMode: false,
   })
 
   const [isPreparationPhase, setIsPreparationPhase] = useState(true)
@@ -37,9 +39,13 @@ export default function RoomPage() {
 
   const isMafia = role === 'mafia' || role === 'mafia-leader' || role === 'mafia-police'
   const isPolice = role === 'police'
-  const isJudge = isHost && settings.iAmJudge
 
   useEffect(() => {
+    const savedRole = sessionStorage.getItem('savedRole')
+    const savedIsJudge = sessionStorage.getItem('isJudge')
+    if (savedRole) setRole(savedRole)
+    if (savedIsJudge === 'true') setIsJudge(true)
+
     const socket = getSocket()
     if (!socket.connected) socket.connect()
 
@@ -50,7 +56,17 @@ export default function RoomPage() {
     })
 
     socket.on('assign-role', ({ name, role }) => {
-      if (name === playerName) setRole(role)
+      if (name === playerName) {
+        setRole(role)
+        sessionStorage.setItem('savedRole', role)
+      }
+    })
+
+    socket.on('set-judge', (name) => {
+      if (name === playerName) {
+        setIsJudge(true)
+        sessionStorage.setItem('isJudge', 'true')
+      }
     })
 
     return () => {
@@ -66,6 +82,10 @@ export default function RoomPage() {
     setPoliceCheckResult(null)
     setSelectedPlayer(null)
     setPoliceFinished(false)
+
+    if (settings.judgeMode && isHost) {
+      socket.emit('set-judge', playerName)
+    }
   }
 
   const handlePlayerCheck = () => {
@@ -95,22 +115,19 @@ export default function RoomPage() {
         <div className="flex flex-col gap-3">
           {players.map((player, i) => {
             const isSelf = player.name === playerName
-            const isMafiaViewable = isMafia && (player.role === 'mafia' || player.role?.startsWith('mafia'))
+            const isMafiaViewable = (isMafia && (player.role === 'mafia' || player.role?.startsWith('mafia')))
             const isChecked = policeCheckResult?.name === player.name
             const isCheckedMafia = policeCheckResult?.isMafia
+            const showAllRoles = isJudge
 
-            const showRole = isSelf || isMafiaViewable || isJudge
             const nameColor = isChecked && isPolice
               ? isCheckedMafia ? 'text-red-500 font-bold' : 'text-green-500 font-bold'
-              : isMafiaViewable ? 'text-red-500 font-bold' : 'text-white'
+              : isMafiaViewable || showAllRoles ? 'text-red-500 font-bold' : 'text-white'
 
-            const highlight =
-              selectedPlayer === player.name && isPolice && isPreparationPhase
-                ? 'ring-2 ring-yellow-400'
-                : ''
+            const highlight = selectedPlayer === player.name && isPolice && isPreparationPhase ? 'ring-2 ring-yellow-400' : ''
 
             const icon = player.eliminated ? '💀 مطرود' :
-              showRole ? (
+              (isSelf || isMafiaViewable || showAllRoles) ? (
                 player.role === 'citizen' ? '👤 شعب' :
                 player.role === 'mafia' ? '🕵️‍♂️ مافيا' :
                 player.role === 'mafia-leader' ? '👑 زعيم' :
@@ -130,9 +147,7 @@ export default function RoomPage() {
                 }}
                 className={`flex items-center justify-between bg-gray-800 border border-white px-4 py-2 rounded-lg cursor-pointer ${highlight}`}
               >
-                <span className={nameColor}>
-                  {player.name}
-                </span>
+                <span className={nameColor}>{player.name}</span>
                 <span className="text-sm text-yellow-400">{icon}</span>
               </div>
             )
@@ -142,18 +157,10 @@ export default function RoomPage() {
 
       {isHost && (
         <div className="flex flex-col items-end gap-4 fixed right-8 top-8">
-          <button
-            onClick={() => setShowSettings(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-          >
+          <button onClick={() => setShowSettings(true)} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
             إعدادات اللعبة
           </button>
-          <button
-            disabled={!canStartRound}
-            className={`font-bold py-2 px-4 rounded ${
-              !canStartRound ? 'bg-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
-            }`}
-          >
+          <button disabled={!canStartRound} className={`font-bold py-2 px-4 rounded ${!canStartRound ? 'bg-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}>
             ابدأ الجولة
           </button>
           <button className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
@@ -166,6 +173,11 @@ export default function RoomPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-gray-800 bg-opacity-80 backdrop-blur-lg p-6 rounded-xl w-full max-w-md text-white space-y-4 shadow-2xl border border-white/20">
             <h2 className="text-xl font-bold mb-4 text-center">إعدادات اللعبة</h2>
+
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={settings.judgeMode} onChange={(e) => setSettings({ ...settings, judgeMode: e.target.checked })} />
+              <span>أنا حكم</span>
+            </label>
 
             <label>عدد المافيا</label>
             <select className="w-full p-2 rounded bg-gray-800" value={settings.mafiaCount}
@@ -202,15 +214,6 @@ export default function RoomPage() {
               onChange={(e) => setSettings({ ...settings, doctorSaves: parseInt(e.target.value) })}>
               {[1, 2, 3].map(n => <option key={n} value={n}>{n}</option>)}
             </select>
-
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={settings.iAmJudge}
-                onChange={() => setSettings({ ...settings, iAmJudge: !settings.iAmJudge })}
-              />
-              أنا حكم (أرى جميع الأدوار)
-            </label>
 
             <div className="flex justify-between pt-4">
               <button onClick={() => setShowSettings(false)} className="px-4 py-2 bg-gray-700 rounded">
@@ -257,12 +260,18 @@ export default function RoomPage() {
       {role && (
         <div className="mt-8 text-xl font-bold text-yellow-400 flex items-center gap-2">
           🎭 دورك هو:{' '}
-          {role === 'doctor' ? 'طبيب'
-            : role === 'mafia' ? 'مافيا'
-            : role === 'mafia-leader' ? 'زعيم المافيا'
-            : role === 'mafia-police' ? 'شرطي مافيا'
-            : role === 'police' ? 'شرطي'
-            : role === 'sniper' ? 'قناص'
+          {role === 'doctor'
+            ? 'طبيب'
+            : role === 'mafia'
+            ? 'مافيا'
+            : role === 'mafia-leader'
+            ? 'زعيم المافيا'
+            : role === 'mafia-police'
+            ? 'شرطي مافيا'
+            : role === 'police'
+            ? 'شرطي'
+            : role === 'sniper'
+            ? 'قناص'
             : 'شعب'}
         </div>
       )}
