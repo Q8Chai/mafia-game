@@ -66,7 +66,8 @@ io.on('connection', (socket) => {
       : players
 
     const totalPlayersInGame = playersToAssignRoles.length
-    const mafiaCount = Math.min(settings.mafiaCount || 3, Math.floor(totalPlayersInGame / 3))
+    const mafiaCount = settings.mafiaCount || 3
+
     const roles = ['doctor', 'sniper', 'police']
 
     const mafiaRoles = ['mafia-leader', 'mafia-police']
