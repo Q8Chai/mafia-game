@@ -129,6 +129,35 @@ io.on('connection', (socket) => {
     io.to(roomId).emit('round-started')
   })
 
+  socket.on('police-question', ({ roomId, playerName, targetName }) => {
+  const room = rooms[roomId]
+  if (!room) return
+
+  const allowedQuestions = room.settings.policeQuestions || 2
+
+  // تأكد أن الـ policeQuestionsUsed موجود
+  if (!room.policeQuestionsUsed) {
+    room.policeQuestionsUsed = {}
+  }
+
+  // كم مرة سأل هذا الشرطي؟
+  const usedCount = room.policeQuestionsUsed[playerName] || 0
+
+  // إذا تجاوز الحد
+  if (usedCount >= allowedQuestions) {
+    socket.emit('error', 'انتهت عدد مرات السؤال المسموحة')
+    return
+  }
+
+  // سجل استخدام السؤال
+  room.policeQuestionsUsed[playerName] = usedCount + 1
+
+  // حدد إذا الشخص المستهدف مافيا
+  const isMafia = room.roles[targetName]?.includes('مافيا')
+  socket.emit('police-check-result', { targetName, isMafia })
+})
+
+
   socket.on('disconnect', () => {
     // يمكن إضافة منطق لإزالة اللاعب عند قطع الاتصال هنا
   })
