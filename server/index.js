@@ -33,7 +33,8 @@ io.on('connection', (socket) => {
     // أرسل معلومات الأدوار إذا كانت اللعبة قد بدأت
     if (Object.keys(rooms[roomId].roles).length > 0) {
       const role = rooms[roomId].roles[name] || ''
-      socket.emit('assign-role', { name, role })
+      io.to(roomId).emit('roles-assigned', rooms[roomId].roles)
+
       
       // أرسل معلومات اللاعبين مع أدوارهم
       io.to(roomId).emit('room-players', rooms[roomId].players.map(p => ({
