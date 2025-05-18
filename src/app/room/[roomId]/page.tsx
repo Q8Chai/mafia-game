@@ -16,9 +16,10 @@ export default function RoomPage() {
   const roomId = params.roomId as string
   const playerName = searchParams.get('name') || ''
   const isHost = searchParams.get('host') === 'true'
-
   const [players, setPlayers] = useState<Player[]>([])
   const [role, setRole] = useState<string>('')
+  const [mafiaList, setMafiaList] = useState<string[]>([])
+  const [allRoles, setAllRoles] = useState<Record<string, string>>({})
   const [showSettings, setShowSettings] = useState(false)
   const [settings, setSettings] = useState({
     mafiaCount: 3,
@@ -52,9 +53,20 @@ export default function RoomPage() {
       setPlayers(playersList)
     })
 
-    socket.on('assign-role', ({ name, role }) => {
-      if (name === playerName) setRole(role)
+    socket.on('assign-role', ({ name, role, roles, mafiaNames, isJudge }) => {
+  if (name === playerName) {
+    setRole(role)
+
+    if (isJudge && roles) {
+      setAllRoles(roles)
+    }
+
+    if (mafiaNames && mafiaNames.length > 0) {
+      setMafiaList(mafiaNames)
+      }
+     }
     })
+
 
     socket.on('player-kicked', ({ name }) => {
       if (name === playerName) {

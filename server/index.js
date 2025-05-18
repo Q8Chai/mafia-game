@@ -33,9 +33,22 @@ io.on('connection', (socket) => {
     // أرسل معلومات الأدوار إذا كانت اللعبة قد بدأت
     if (Object.keys(rooms[roomId].roles).length > 0) {
       const role = rooms[roomId].roles[name] || ''
+      const isJudge = rooms[roomId].judgeName === name
+      const allRoles = rooms[roomId].roles
+      const mafiaNames = getMafiaNames(roomId, name)
+
+      // أرسل الدور لهذا اللاعب فقط
+      socket.emit('assign-role', {
+        name,
+        role,
+        roles: isJudge ? allRoles : {}, // الحكم يشوف الكل
+        mafiaNames,                     // المافيا يشوفون زملاءهم
+        isJudge,
+      })
+
       io.to(roomId).emit('roles-assigned', rooms[roomId].roles)
 
-      
+
       // أرسل معلومات اللاعبين مع أدوارهم
       io.to(roomId).emit('room-players', rooms[roomId].players.map(p => ({
         ...p,
@@ -46,11 +59,26 @@ io.on('connection', (socket) => {
     }
   })
 
+  function getMafiaNames(roomId, playerName) {
+  const roles = rooms[roomId]?.roles || {}
+  const mafiaNames = []
+
+  for (const [name, role] of Object.entries(roles)) {
+    if (role.includes('مافيا')) {
+      mafiaNames.push(name)
+    }
+  }
+
+  if (!roles[playerName]?.includes('مافيا')) return []
+  return mafiaNames.filter((n) => n !== playerName)
+}
+
+
   socket.on('check-room', (roomId, callback) => {
     const exists = !!rooms[roomId]
     callback(exists)
   })
-  
+
 
   socket.on('start-game', (roomId, settings) => {
     if (!rooms[roomId]) return
@@ -62,8 +90,8 @@ io.on('connection', (socket) => {
     rooms[roomId].settings = settings
 
     // استبعاد الحكم من توزيع الأدوار
-    const playersToAssignRoles = isJudge 
-      ? players.filter(p => p.name !== judgeName) 
+    const playersToAssignRoles = isJudge
+      ? players.filter(p => p.name !== judgeName)
       : players
 
     const totalPlayersInGame = playersToAssignRoles.length
@@ -78,7 +106,7 @@ io.on('connection', (socket) => {
     const shuffledPlayers = playersToAssignRoles.sort(() => 0.5 - Math.random())
 
     const assignedRoles = {}
-    
+
     // تعيين الأدوار للاعبين (ما عدا الحكم)
     for (const player of shuffledPlayers) {
       const role = remainingRoles.length > 0 ? remainingRoles.shift() : 'citizen'
@@ -107,15 +135,15 @@ io.on('connection', (socket) => {
 
   socket.on('kick-player', ({ roomId, name }) => {
     if (!rooms[roomId]) return
-    
+
     // تحديث قائمة اللاعبين بعد الطرد
     rooms[roomId].players = rooms[roomId].players.filter(p => p.name !== name)
-    
+
     // حذف الدور من قائمة الأدوار
     if (rooms[roomId].roles[name]) {
       delete rooms[roomId].roles[name]
     }
-    
+
     // إعلام جميع اللاعبين بالتغيير
     io.to(roomId).emit('player-kicked', { name })
     io.to(roomId).emit('room-players', rooms[roomId].players.map(p => ({
@@ -130,32 +158,32 @@ io.on('connection', (socket) => {
   })
 
   socket.on('police-question', ({ roomId, playerName, targetName }) => {
-  const room = rooms[roomId]
-  if (!room) return
+    const room = rooms[roomId]
+    if (!room) return
 
-  const allowedQuestions = room.settings.policeQuestions || 2
+    const allowedQuestions = room.settings.policeQuestions || 2
 
-  // تأكد أن الـ policeQuestionsUsed موجود
-  if (!room.policeQuestionsUsed) {
-    room.policeQuestionsUsed = {}
-  }
+    // تأكد أن الـ policeQuestionsUsed موجود
+    if (!room.policeQuestionsUsed) {
+      room.policeQuestionsUsed = {}
+    }
 
-  // كم مرة سأل هذا الشرطي؟
-  const usedCount = room.policeQuestionsUsed[playerName] || 0
+    // كم مرة سأل هذا الشرطي؟
+    const usedCount = room.policeQuestionsUsed[playerName] || 0
 
-  // إذا تجاوز الحد
-  if (usedCount >= allowedQuestions) {
-    socket.emit('error', 'انتهت عدد مرات السؤال المسموحة')
-    return
-  }
+    // إذا تجاوز الحد
+    if (usedCount >= allowedQuestions) {
+      socket.emit('error', 'انتهت عدد مرات السؤال المسموحة')
+      return
+    }
 
-  // سجل استخدام السؤال
-  room.policeQuestionsUsed[playerName] = usedCount + 1
+    // سجل استخدام السؤال
+    room.policeQuestionsUsed[playerName] = usedCount + 1
 
-  // حدد إذا الشخص المستهدف مافيا
-  const isMafia = room.roles[targetName]?.includes('مافيا')
-  socket.emit('police-check-result', { targetName, isMafia })
-})
+    // حدد إذا الشخص المستهدف مافيا
+    const isMafia = room.roles[targetName]?.includes('مافيا')
+    socket.emit('police-check-result', { targetName, isMafia })
+  })
 
 
   socket.on('disconnect', () => {
