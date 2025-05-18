@@ -18,7 +18,9 @@ export default function RoomPage() {
   const isHost = searchParams.get('host') === 'true'
   const [players, setPlayers] = useState<Player[]>([])
   const [role, setRole] = useState<string>('')
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [mafiaList, setMafiaList] = useState<string[]>([])
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [allRoles, setAllRoles] = useState<Record<string, string>>({})
   const [showSettings, setShowSettings] = useState(false)
   const [settings, setSettings] = useState({
