@@ -42,8 +42,9 @@ export default function RoomPage() {
   const [kickMode, setKickMode] = useState(false)
   const [playerToKick, setPlayerToKick] = useState<string | null>(null)
   const [roundStartTimer, setRoundStartTimer] = useState<number | null>(null)
-  const [showRoleCountdown, setShowRoleCountdown] = useState(true)
+  const [showRoleCountdown, setShowRoleCountdown] = useState(false)
   const [roleCountdown, setRoleCountdown] = useState(10)
+  const [canClickStartRound, setCanClickStartRound] = useState(false)
 
 
   const isMafia = role === 'mafia' || role === 'mafia-leader' || role === 'mafia-police'
@@ -72,8 +73,9 @@ export default function RoomPage() {
           setMafiaList(mafiaNames)
         }
 
-        setShowRoleCountdown(true)
         setRoleCountdown(10)
+        setShowRoleCountdown(true)
+        setCanClickStartRound(false)  
 
         const countdownInterval = setInterval(() => {
           setRoleCountdown(prev => {
@@ -124,6 +126,26 @@ export default function RoomPage() {
       socket.disconnect()
     }
   }, [roomId, playerName])
+
+
+  useEffect(() => {
+  if (!showRoleCountdown) return
+
+  const interval = setInterval(() => {
+    setRoleCountdown(prev => {
+      if (prev <= 1) {
+        clearInterval(interval)
+        setShowRoleCountdown(false)
+        setCanClickStartRound(true)
+        return 0
+      }
+      return prev - 1
+    })
+  }, 1000)
+
+  return () => clearInterval(interval)
+}, [showRoleCountdown])
+
 
   const handleStartGame = () => {
     const socket = getSocket()
@@ -185,7 +207,7 @@ export default function RoomPage() {
     setIsPreparationPhase(false)
   }
 
-  const canStartRound = !isPreparationPhase || policeFinished
+  const canStartRound = !isPreparationPhase && canClickStartRound
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-white p-4">
