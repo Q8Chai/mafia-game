@@ -37,6 +37,7 @@ export default function RoomPage() {
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null)
   const [policeCheckResult, setPoliceCheckResult] = useState<{ name: string, isMafia: boolean } | null>(null)
   const [policeQuestionsUsed, setPoliceQuestionsUsed] = useState(0)
+  const [allowedPoliceQuestions, setAllowedPoliceQuestions] = useState(2)
   const [policeFinished, setPoliceFinished] = useState(false)
   const [kickMode, setKickMode] = useState(false)
   const [playerToKick, setPlayerToKick] = useState<string | null>(null)
@@ -56,7 +57,7 @@ export default function RoomPage() {
       setPlayers(playersList)
     })
 
-    socket.on('assign-role', ({ name, role, roles, mafiaNames, isJudge }) => {
+    socket.on('assign-role', ({ name, role, roles, mafiaNames, isJudge, policeQuestionsUsed, allowedPoliceQuestions }) => {
       if (name === playerName) {
         setRole(role)
 
@@ -67,8 +68,17 @@ export default function RoomPage() {
         if (mafiaNames && mafiaNames.length > 0) {
           setMafiaList(mafiaNames)
         }
+
+        if (typeof policeQuestionsUsed === 'number') {
+          setPoliceQuestionsUsed(policeQuestionsUsed)
+        }
+
+        if (typeof allowedPoliceQuestions === 'number') {
+          setAllowedPoliceQuestions(allowedPoliceQuestions)
+        }
       }
     })
+
 
 
     socket.on('player-kicked', ({ name }) => {
@@ -81,6 +91,17 @@ export default function RoomPage() {
     socket.on('round-started', () => {
       setIsPreparationPhase(false)
     })
+
+    socket.on('police-check-result', ({ targetName, isMafia }) => {
+      setPoliceCheckResult({ name: targetName, isMafia })
+      setPoliceFinished(true)
+      setPoliceQuestionsUsed(prev => prev + 1)
+    })
+
+    socket.on('error', (msg) => {
+      console.warn('🚫', msg)
+    })
+
 
     return () => {
       socket.disconnect()
@@ -114,13 +135,16 @@ export default function RoomPage() {
   }, [roundStartTimer])
 
   const handlePlayerCheck = () => {
-    const target = players.find(p => p.name === selectedPlayer)
-    if (!target) return
-    const isTargetMafia = ['mafia', 'mafia-leader', 'mafia-police'].includes(target.role || '')
-    setPoliceCheckResult({ name: target.name, isMafia: isTargetMafia })
-    setPoliceQuestionsUsed(prev => prev + 1)
-    setPoliceFinished(true)
+    if (!selectedPlayer) return
+
+    const socket = getSocket()
+    socket.emit('police-question', {
+      roomId,
+      playerName,
+      targetName: selectedPlayer
+    })
   }
+
 
   const handlePostpone = () => {
     setSelectedPlayer(null)
@@ -331,7 +355,7 @@ export default function RoomPage() {
         </div>
       )}
 
-      {isPolice && isPreparationPhase && !policeFinished && policeQuestionsUsed < settings.policeQuestions && (
+      {isPolice && isPreparationPhase && !policeFinished && policeQuestionsUsed < allowedPoliceQuestions && (
         <div className="mt-8 flex flex-col items-center gap-3">
           <p className="text-lg font-semibold">👮‍♂️ دورك الآن! اختر لاعبًا:</p>
           <p className="text-sm text-yellow-300">

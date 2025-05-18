@@ -44,6 +44,9 @@ io.on('connection', (socket) => {
         roles: isJudge ? allRoles : {}, // الحكم يشوف الكل
         mafiaNames,                     // المافيا يشوفون زملاءهم
         isJudge,
+        policeQuestionsUsed: rooms[roomId].policeQuestionsUsed?.[name] || 0,
+        allowedPoliceQuestions: rooms[roomId].settings?.policeQuestions || 2,
+
       })
 
       io.to(roomId).emit('roles-assigned', rooms[roomId].roles)
