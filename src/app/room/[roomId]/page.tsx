@@ -42,6 +42,9 @@ export default function RoomPage() {
   const [kickMode, setKickMode] = useState(false)
   const [playerToKick, setPlayerToKick] = useState<string | null>(null)
   const [roundStartTimer, setRoundStartTimer] = useState<number | null>(null)
+  const [showRoleCountdown, setShowRoleCountdown] = useState(true)
+  const [roleCountdown, setRoleCountdown] = useState(10)
+
 
   const isMafia = role === 'mafia' || role === 'mafia-leader' || role === 'mafia-police'
   const isPolice = role === 'police'
@@ -68,6 +71,20 @@ export default function RoomPage() {
         if (mafiaNames && mafiaNames.length > 0) {
           setMafiaList(mafiaNames)
         }
+
+        setShowRoleCountdown(true)
+        setRoleCountdown(10)
+
+        const countdownInterval = setInterval(() => {
+          setRoleCountdown(prev => {
+            if (prev === 1) {
+              clearInterval(countdownInterval)
+              setShowRoleCountdown(false)
+            }
+            return prev - 1
+          })
+        }, 1000)
+
 
         if (typeof policeQuestionsUsed === 'number') {
           setPoliceQuestionsUsed(policeQuestionsUsed)
@@ -178,6 +195,13 @@ export default function RoomPage() {
 
       <div className="mt-6 w-full max-w-md text-right">
         <h2 className="text-lg font-semibold mb-4">اللاعبين في الغرفة:</h2>
+
+        {showRoleCountdown && (
+          <div className="text-center text-yellow-300 font-bold text-lg mt-4">
+            جاري تجهيز الجولة... {roleCountdown} ثانية
+          </div>
+        )}
+
         <div className="flex flex-col gap-3">
           {players.map((player, i) => {
             const isSelf = player.name === playerName
