@@ -36,6 +36,7 @@ export default function RoomPage() {
   const [isPreparationPhase, setIsPreparationPhase] = useState(true)
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null)
   const [policeCheckResult, setPoliceCheckResult] = useState<{ name: string, isMafia: boolean } | null>(null)
+  const [policeQuestionsUsed, setPoliceQuestionsUsed] = useState(0)
   const [policeFinished, setPoliceFinished] = useState(false)
   const [kickMode, setKickMode] = useState(false)
   const [playerToKick, setPlayerToKick] = useState<string | null>(null)
@@ -56,17 +57,17 @@ export default function RoomPage() {
     })
 
     socket.on('assign-role', ({ name, role, roles, mafiaNames, isJudge }) => {
-  if (name === playerName) {
-    setRole(role)
+      if (name === playerName) {
+        setRole(role)
 
-    if (isJudge && roles) {
-      setAllRoles(roles)
-    }
+        if (isJudge && roles) {
+          setAllRoles(roles)
+        }
 
-    if (mafiaNames && mafiaNames.length > 0) {
-      setMafiaList(mafiaNames)
+        if (mafiaNames && mafiaNames.length > 0) {
+          setMafiaList(mafiaNames)
+        }
       }
-     }
     })
 
 
@@ -117,6 +118,7 @@ export default function RoomPage() {
     if (!target) return
     const isTargetMafia = ['mafia', 'mafia-leader', 'mafia-police'].includes(target.role || '')
     setPoliceCheckResult({ name: target.name, isMafia: isTargetMafia })
+    setPoliceQuestionsUsed(prev => prev + 1)
     setPoliceFinished(true)
   }
 
@@ -329,9 +331,13 @@ export default function RoomPage() {
         </div>
       )}
 
-      {isPolice && isPreparationPhase && !policeFinished && (
+      {isPolice && isPreparationPhase && !policeFinished && policeQuestionsUsed < settings.policeQuestions && (
         <div className="mt-8 flex flex-col items-center gap-3">
           <p className="text-lg font-semibold">👮‍♂️ دورك الآن! اختر لاعبًا:</p>
+          <p className="text-sm text-yellow-300">
+            تبقّى لك {settings.policeQuestions - policeQuestionsUsed} من {settings.policeQuestions} سؤال
+          </p>
+
           <div className="flex gap-4">
             <button
               onClick={handlePostpone}

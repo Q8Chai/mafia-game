@@ -60,18 +60,18 @@ io.on('connection', (socket) => {
   })
 
   function getMafiaNames(roomId, playerName) {
-  const roles = rooms[roomId]?.roles || {}
-  const mafiaNames = []
+    const roles = rooms[roomId]?.roles || {}
+    const mafiaNames = []
 
-  for (const [name, role] of Object.entries(roles)) {
-    if (role.includes('مافيا')) {
-      mafiaNames.push(name)
+    for (const [name, role] of Object.entries(roles)) {
+      if (role.includes('مافيا')) {
+        mafiaNames.push(name)
+      }
     }
-  }
 
-  if (!roles[playerName]?.includes('مافيا')) return []
-  return mafiaNames.filter((n) => n !== playerName)
-}
+    if (!roles[playerName]?.includes('مافيا')) return []
+    return mafiaNames.filter((n) => n !== playerName)
+  }
 
 
   socket.on('check-room', (roomId, callback) => {
@@ -120,6 +120,11 @@ io.on('connection', (socket) => {
 
     rooms[roomId].roles = assignedRoles
 
+    rooms[roomId].policeQuestionsUsed = {}
+    rooms[roomId].lastPoliceQuestionRound = {}
+    rooms[roomId].currentRound = 0
+
+
     // إرسال الأدوار إلى اللاعبين
     for (const player of players) {
       const role = assignedRoles[player.name] || ''
@@ -163,27 +168,35 @@ io.on('connection', (socket) => {
 
     const allowedQuestions = room.settings.policeQuestions || 2
 
-    // تأكد أن الـ policeQuestionsUsed موجود
-    if (!room.policeQuestionsUsed) {
-      room.policeQuestionsUsed = {}
-    }
+    // تأكد من وجود العدادات
+    if (!room.policeQuestionsUsed) room.policeQuestionsUsed = {}
+    if (!room.lastPoliceQuestionRound) room.lastPoliceQuestionRound = {}
+    if (room.currentRound === undefined) room.currentRound = 0
 
-    // كم مرة سأل هذا الشرطي؟
-    const usedCount = room.policeQuestionsUsed[playerName] || 0
+    const used = room.policeQuestionsUsed[playerName] || 0
+    const lastAskedRound = room.lastPoliceQuestionRound[playerName]
+    const currentRound = room.currentRound
 
-    // إذا تجاوز الحد
-    if (usedCount >= allowedQuestions) {
-      socket.emit('error', 'انتهت عدد مرات السؤال المسموحة')
+    // ❌ إذا تجاوز عدد الأسئلة
+    if (used >= allowedQuestions) {
+      socket.emit('error', '❌ انتهت عدد مرات السؤال المسموحة.')
       return
     }
 
-    // سجل استخدام السؤال
-    room.policeQuestionsUsed[playerName] = usedCount + 1
+    // ❌ إذا سأل بنفس الجولة
+    if (lastAskedRound === currentRound) {
+      socket.emit('error', '❌ لا يمكنك السؤال مرتين في نفس الجولة.')
+      return
+    }
 
-    // حدد إذا الشخص المستهدف مافيا
+    // ✅ نسجل السؤال
+    room.policeQuestionsUsed[playerName] = used + 1
+    room.lastPoliceQuestionRound[playerName] = currentRound
+
     const isMafia = room.roles[targetName]?.includes('مافيا')
     socket.emit('police-check-result', { targetName, isMafia })
   })
+
 
 
   socket.on('disconnect', () => {
