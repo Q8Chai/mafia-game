@@ -255,6 +255,7 @@ export default function RoomPage() {
         <div className="flex flex-col gap-3">
           {players.map((player, i) => {
             const isSelf = player.name === playerName
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const isTalkingNow = talkingPhase && i === talkingIndex
             const isMafiaViewable = isMafia && (player.role === 'mafia' || player.role?.startsWith('mafia'))
             const isChecked = policeCheckResult?.name === player.name
