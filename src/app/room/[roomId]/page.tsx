@@ -77,17 +77,7 @@ export default function RoomPage() {
         setShowRoleCountdown(true)
         setCanClickStartRound(false)  
 
-        const countdownInterval = setInterval(() => {
-          setRoleCountdown(prev => {
-            if (prev === 1) {
-              clearInterval(countdownInterval)
-              setShowRoleCountdown(false)
-            }
-            return prev - 1
-          })
-        }, 1000)
-
-
+        
         if (typeof policeQuestionsUsed === 'number') {
           setPoliceQuestionsUsed(policeQuestionsUsed)
         }
