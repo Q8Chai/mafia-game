@@ -77,7 +77,7 @@ export default function RoomPage() {
         setShowRoleCountdown(true)
         setCanClickStartRound(false)  
 
-        
+
         if (typeof policeQuestionsUsed === 'number') {
           setPoliceQuestionsUsed(policeQuestionsUsed)
         }
@@ -197,7 +197,7 @@ export default function RoomPage() {
     setIsPreparationPhase(false)
   }
 
-  const canStartRound = !isPreparationPhase && canClickStartRound
+  const canStartRound = canClickStartRound
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-white p-4">
