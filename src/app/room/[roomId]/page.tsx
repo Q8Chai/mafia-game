@@ -45,6 +45,11 @@ export default function RoomPage() {
   const [showRoleCountdown, setShowRoleCountdown] = useState(false)
   const [roleCountdown, setRoleCountdown] = useState(10)
   const [canClickStartRound, setCanClickStartRound] = useState(false)
+  const [talkingIndex, setTalkingIndex] = useState<number | null>(null)
+  const [talkingTimer, setTalkingTimer] = useState<number>(0)
+  const [talkingPhase, setTalkingPhase] = useState(false)
+  // const [talkingOrder, setTalkingOrder] = useState<string[]>([])
+
 
 
   const isMafia = role === 'mafia' || role === 'mafia-leader' || role === 'mafia-police'
@@ -75,7 +80,7 @@ export default function RoomPage() {
 
         setRoleCountdown(10)
         setShowRoleCountdown(true)
-        setCanClickStartRound(false)  
+        setCanClickStartRound(false)
 
 
         if (typeof policeQuestionsUsed === 'number') {
@@ -119,22 +124,22 @@ export default function RoomPage() {
 
 
   useEffect(() => {
-  if (!showRoleCountdown) return
+    if (!showRoleCountdown) return
 
-  const interval = setInterval(() => {
-    setRoleCountdown(prev => {
-      if (prev <= 1) {
-        clearInterval(interval)
-        setShowRoleCountdown(false)
-        setCanClickStartRound(true)
-        return 0
-      }
-      return prev - 1
-    })
-  }, 1000)
+    const interval = setInterval(() => {
+      setRoleCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(interval)
+          setShowRoleCountdown(false)
+          setCanClickStartRound(true)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
 
-  return () => clearInterval(interval)
-}, [showRoleCountdown])
+    return () => clearInterval(interval)
+  }, [showRoleCountdown])
 
 
   const handleStartGame = () => {
@@ -162,6 +167,35 @@ export default function RoomPage() {
       }
     }
   }, [roundStartTimer])
+
+  useEffect(() => {
+    if (!talkingPhase || talkingIndex === null || talkingIndex >= players.length) return
+
+    const timer = setInterval(() => {
+      setTalkingTimer(prev => {
+        if (prev <= 1) {
+          clearInterval(timer)
+
+          // ننتقل للاعب اللي بعده
+          if (talkingIndex + 1 < players.length) {
+            setTalkingIndex(talkingIndex + 1)
+            setTalkingTimer(25) // نرجّع العداد لـ 25 لللاعب الجديد
+          } else {
+            // خلصوا كل اللاعبين
+            setTalkingPhase(false)
+            setTalkingIndex(null)
+          }
+
+          return 0
+        }
+
+        return prev - 1
+      })
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [talkingPhase, talkingIndex, players.length])
+
 
   const handlePlayerCheck = () => {
     if (!selectedPlayer) return
@@ -195,6 +229,10 @@ export default function RoomPage() {
     const socket = getSocket()
     socket.emit('start-round', { roomId })
     setIsPreparationPhase(false)
+    setTalkingPhase(true)
+    setTalkingIndex(0)
+    setTalkingTimer(25)
+
   }
 
   const canStartRound = canClickStartRound
@@ -217,6 +255,7 @@ export default function RoomPage() {
         <div className="flex flex-col gap-3">
           {players.map((player, i) => {
             const isSelf = player.name === playerName
+            const isTalkingNow = talkingPhase && i === talkingIndex
             const isMafiaViewable = isMafia && (player.role === 'mafia' || player.role?.startsWith('mafia'))
             const isChecked = policeCheckResult?.name === player.name
             const isCheckedMafia = policeCheckResult?.isMafia
@@ -272,7 +311,13 @@ export default function RoomPage() {
                 }}
                 className={`flex items-center justify-between bg-gray-800 border border-white px-4 py-2 rounded-lg ${kickMode && player.name !== playerName ? 'cursor-pointer hover:bg-gray-700' : ''} ${highlight}`}
               >
-                <span className={nameColor}>{player.name}</span>
+                <span className={nameColor}>
+                  {player.name}
+                  {talkingIndex === i && talkingPhase && (
+                    <span className="ml-2 text-yellow-400">⏱️ {talkingTimer}s</span>
+                  )}
+                </span>
+
                 <span className="text-sm text-yellow-400">{icon}</span>
               </div>
             )
